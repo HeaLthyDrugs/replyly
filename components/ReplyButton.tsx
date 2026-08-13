@@ -3,21 +3,24 @@ import React from "react"
 interface ReplyButtonProps {
   postText: string
   author: string
+  article: HTMLElement
 }
 
 export const ReplyButton: React.FC<ReplyButtonProps> = ({
   postText,
-  author
+  author,
+  article
 }) => {
   const handleClick = (e: React.MouseEvent) => {
     // Prevent the click from bubbling up to the article, which would open the post
     e.preventDefault()
     e.stopPropagation()
 
-    console.log("[Replyly] AI Reply Button Clicked!")
-    console.log(`Context - Author: ${author}`)
-    console.log(`Context - Text: ${postText}`)
-    console.log("-------------------")
+    // Dispatch custom event to open the modal
+    const event = new CustomEvent("replyly-open-modal", {
+      detail: { author, postText, article }
+    })
+    document.dispatchEvent(event)
   }
 
   return (
