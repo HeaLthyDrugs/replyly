@@ -25,30 +25,33 @@ export const groqProvider: AIProvider = {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
         if (response.status === 401 || response.status === 403) {
-          throw new ProviderError("Invalid Groq API key. Please check your Replyly Settings.")
+          throw new ProviderError("Invalid Groq API key.", "INVALID_API_KEY")
         }
         if (response.status === 429) {
-          throw new ProviderError("Groq Rate limit exceeded. Please wait a moment and try again.")
+          throw new ProviderError("Groq Rate limit exceeded.", "RATE_LIMITED")
         }
-        throw new Error(errorText || `Groq API Error: ${response.status}`)
+        if (response.status === 503) {
+          throw new ProviderError("Groq Service Unavailable.", "SERVICE_UNAVAILABLE")
+        }
+        const errorText = await response.text()
+        throw new ProviderError(errorText || `Groq API Error: ${response.status}`, "PROVIDER_ERROR")
       }
 
       const data = await response.json()
       const text = data.choices?.[0]?.message?.content
 
-      if (!text) throw new ProviderError("Empty response from Groq")
+      if (!text) throw new ProviderError("Empty response from Groq", "PROVIDER_ERROR")
 
       let parsed: any
       try {
         parsed = JSON.parse(text)
       } catch (e) {
-        throw new ProviderError("Malformed JSON response from Groq")
+        throw new ProviderError("Malformed JSON response from Groq", "PROVIDER_ERROR")
       }
 
       if (!parsed || !Array.isArray(parsed.replies)) {
-        throw new ProviderError("Invalid response format: 'replies' array missing")
+        throw new ProviderError("Invalid response format: 'replies' array missing", "PROVIDER_ERROR")
       }
 
       const replies = parsed.replies
@@ -56,7 +59,7 @@ export const groqProvider: AIProvider = {
         .map((r: string) => r.trim())
 
       if (replies.length !== req.numReplies) {
-        throw new ProviderError(`Expected exactly ${req.numReplies} replies, but got ${replies.length}`)
+        throw new ProviderError(`Expected exactly ${req.numReplies} replies, but got ${replies.length}`, "PROVIDER_ERROR")
       }
 
       return replies
@@ -64,10 +67,10 @@ export const groqProvider: AIProvider = {
       if (error instanceof ProviderError) throw error
       
       if (error.name === "TypeError" && error.message.includes("fetch")) {
-        throw new ProviderError("Network error connecting to Groq. Please check your connection.")
+        throw new ProviderError("Network error connecting to Groq.", "NETWORK_ERROR")
       }
       
-      throw new ProviderError(error.message || "An unexpected error occurred with Groq.")
+      throw new ProviderError(error.message || "An unexpected error occurred with Groq.", "UNKNOWN_ERROR")
     }
   },
 
@@ -88,15 +91,18 @@ export const groqProvider: AIProvider = {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          throw new ProviderError("Invalid Groq API key.")
+          throw new ProviderError("Invalid Groq API key.", "INVALID_API_KEY")
         }
-        throw new ProviderError("Connection test failed for Groq.")
+        if (response.status === 429) {
+          throw new ProviderError("Groq Rate limit exceeded.", "RATE_LIMITED")
+        }
+        throw new ProviderError(`Connection test failed for Groq. Status: ${response.status}`, "PROVIDER_ERROR")
       }
       
       return true
     } catch (error: any) {
       if (error instanceof ProviderError) throw error
-      throw new ProviderError("Connection test failed for Groq.")
+      throw new ProviderError("Connection test failed for Groq.", "NETWORK_ERROR")
     }
   }
 }

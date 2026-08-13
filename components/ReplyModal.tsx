@@ -18,6 +18,16 @@ interface ReplyState {
   error?: string
 }
 
+interface CachedPostData {
+  replies: ReplyState[] | null
+  selectedTone: string
+  customInstruction: string
+  generationInfo: { provider: string, usedFallback: boolean } | null
+}
+
+// Module-level cache to persist generated replies for specific posts across modal opens
+const postCache = new Map<string, CachedPostData>()
+
 export const ReplyModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [data, setData] = useState<ModalData | null>(null)
@@ -27,6 +37,7 @@ export const ReplyModal: React.FC = () => {
   
   const [isGenerating, setIsGenerating] = useState(false)
   const [replies, setReplies] = useState<ReplyState[] | null>(null)
+  const [generationInfo, setGenerationInfo] = useState<{ provider: string, usedFallback: boolean } | null>(null)
   const [error, setError] = useState<string | null>(null)
   
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -42,11 +53,22 @@ export const ReplyModal: React.FC = () => {
   useEffect(() => {
     const handleOpenModal = (e: Event) => {
       const customEvent = e as CustomEvent<ModalData>
-      setData(customEvent.detail)
+      const newPostData = customEvent.detail
+      setData(newPostData)
       setIsOpen(true)
       
+      const cached = postCache.get(newPostData.postText)
+      if (cached) {
+        setReplies(cached.replies)
+        setSelectedTone(cached.selectedTone)
+        setCustomInstruction(cached.customInstruction)
+        setGenerationInfo(cached.generationInfo)
+      } else {
+        setReplies(null)
+        setGenerationInfo(null)
+      }
+      
       setIsGenerating(false)
-      setReplies(null)
       setError(null)
       setCopiedId(null)
       setPostingId(null)
@@ -56,6 +78,18 @@ export const ReplyModal: React.FC = () => {
     document.addEventListener("replyly-open-modal", handleOpenModal)
     return () => document.removeEventListener("replyly-open-modal", handleOpenModal)
   }, [])
+
+  // Auto-save to cache whenever replies, tone, or customInstruction change for the current post
+  useEffect(() => {
+    if (data?.postText && replies) {
+      postCache.set(data.postText, {
+        replies,
+        selectedTone,
+        customInstruction,
+        generationInfo
+      })
+    }
+  }, [data?.postText, replies, selectedTone, customInstruction, generationInfo])
 
   if (!isOpen || !data) return null
 
@@ -67,12 +101,13 @@ export const ReplyModal: React.FC = () => {
     setIsGenerating(true)
     setError(null)
     setReplies(null)
+    setGenerationInfo(null)
     setIsMissingKey(false)
 
     try {
-      const generatedReplies = await AIManager.generateReplies(data.postText, selectedTone, customInstruction, 3)
+      const result = await AIManager.generateReplies(data.postText, selectedTone, customInstruction, 3)
       
-      const newReplies: ReplyState[] = generatedReplies.map((text, i) => ({
+      const newReplies: ReplyState[] = result.replies.map((text, i) => ({
         id: `reply-${Date.now()}-${i}`,
         text,
         draftText: text,
@@ -81,6 +116,7 @@ export const ReplyModal: React.FC = () => {
       }))
       
       setReplies(newReplies)
+      setGenerationInfo({ provider: result.provider, usedFallback: result.usedFallback })
     } catch (err: any) {
       if (err instanceof MissingApiKeyError) {
         setIsMissingKey(true)
@@ -265,8 +301,15 @@ export const ReplyModal: React.FC = () => {
           {/* Replies */}
           {replies && (
             <div>
-              <div style={{ fontSize: "14px", fontWeight: 700, marginBottom: "10px", color: "#fff" }}>
-                Generated Replies
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" }}>
+                <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>
+                  Generated Replies
+                </div>
+                {generationInfo && (
+                  <div style={{ fontSize: "12px", color: generationInfo.usedFallback ? "#f91880" : "#8899a6", fontWeight: 600 }}>
+                    {generationInfo.usedFallback ? `Generated with ${generationInfo.provider} · fallback` : `Generated with ${generationInfo.provider}`}
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {replies.map((reply) => {

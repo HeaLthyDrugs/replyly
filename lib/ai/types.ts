@@ -1,9 +1,24 @@
 export type ProviderId = 'gemini' | 'groq' | 'openrouter'
 
-export interface ProviderConfig {
+export type ErrorType = 
+  | "INVALID_API_KEY" | "RATE_LIMITED" | "QUOTA_EXCEEDED" | "NETWORK_ERROR"
+  | "SERVICE_UNAVAILABLE" | "MODEL_UNAVAILABLE" | "BAD_REQUEST"
+  | "CONTENT_POLICY" | "PROVIDER_ERROR" | "UNKNOWN_ERROR"
+
+export interface AIAccount {
+  id: string
+  name: string
   apiKey: string
   model: string
   enabled: boolean
+  status: "unknown" | "healthy" | "rate_limited" | "invalid"
+  lastUsedAt: number | null
+  lastErrorAt: number | null
+  cooldownUntil: number | null
+}
+
+export interface ProviderConfig {
+  accounts: AIAccount[]
 }
 
 export interface AIConfig {
@@ -13,6 +28,8 @@ export interface AIConfig {
     openrouter?: ProviderConfig
   }
   activeProvider: ProviderId | null
+  fallbackEnabled: boolean
+  fallbackProviders: ProviderId[]
 }
 
 export interface GenerateRequest {
@@ -24,6 +41,13 @@ export interface GenerateRequest {
   apiKey: string
 }
 
+export interface GenerationResult {
+  replies: string[]
+  provider: ProviderId
+  accountId: string
+  usedFallback: boolean
+}
+
 export interface AIProvider {
   id: ProviderId
   name: string
@@ -32,9 +56,12 @@ export interface AIProvider {
 }
 
 export class ProviderError extends Error {
-  constructor(message: string) {
+  type: ErrorType
+
+  constructor(message: string, type: ErrorType = "UNKNOWN_ERROR") {
     super(message)
     this.name = "ProviderError"
+    this.type = type
   }
 }
 

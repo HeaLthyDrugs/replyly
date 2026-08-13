@@ -27,30 +27,33 @@ export const openrouterProvider: AIProvider = {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
         if (response.status === 401 || response.status === 403) {
-          throw new ProviderError("Invalid OpenRouter API key. Please check your Replyly Settings.")
+          throw new ProviderError("Invalid OpenRouter API key.", "INVALID_API_KEY")
         }
         if (response.status === 429) {
-          throw new ProviderError("OpenRouter Rate limit exceeded. Please wait a moment and try again.")
+          throw new ProviderError("OpenRouter Rate limit exceeded.", "RATE_LIMITED")
         }
-        throw new Error(errorText || `OpenRouter API Error: ${response.status}`)
+        if (response.status === 503 || response.status === 502) {
+          throw new ProviderError("OpenRouter Service Unavailable.", "SERVICE_UNAVAILABLE")
+        }
+        const errorText = await response.text()
+        throw new ProviderError(errorText || `OpenRouter API Error: ${response.status}`, "PROVIDER_ERROR")
       }
 
       const data = await response.json()
       const text = data.choices?.[0]?.message?.content
 
-      if (!text) throw new ProviderError("Empty response from OpenRouter")
+      if (!text) throw new ProviderError("Empty response from OpenRouter", "PROVIDER_ERROR")
 
       let parsed: any
       try {
         parsed = JSON.parse(text)
       } catch (e) {
-        throw new ProviderError("Malformed JSON response from OpenRouter")
+        throw new ProviderError("Malformed JSON response from OpenRouter", "PROVIDER_ERROR")
       }
 
       if (!parsed || !Array.isArray(parsed.replies)) {
-        throw new ProviderError("Invalid response format: 'replies' array missing")
+        throw new ProviderError("Invalid response format: 'replies' array missing", "PROVIDER_ERROR")
       }
 
       const replies = parsed.replies
@@ -58,7 +61,7 @@ export const openrouterProvider: AIProvider = {
         .map((r: string) => r.trim())
 
       if (replies.length !== req.numReplies) {
-        throw new ProviderError(`Expected exactly ${req.numReplies} replies, but got ${replies.length}`)
+        throw new ProviderError(`Expected exactly ${req.numReplies} replies, but got ${replies.length}`, "PROVIDER_ERROR")
       }
 
       return replies
@@ -66,10 +69,10 @@ export const openrouterProvider: AIProvider = {
       if (error instanceof ProviderError) throw error
       
       if (error.name === "TypeError" && error.message.includes("fetch")) {
-        throw new ProviderError("Network error connecting to OpenRouter. Please check your connection.")
+        throw new ProviderError("Network error connecting to OpenRouter.", "NETWORK_ERROR")
       }
       
-      throw new ProviderError(error.message || "An unexpected error occurred with OpenRouter.")
+      throw new ProviderError(error.message || "An unexpected error occurred with OpenRouter.", "UNKNOWN_ERROR")
     }
   },
 
@@ -92,15 +95,18 @@ export const openrouterProvider: AIProvider = {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          throw new ProviderError("Invalid OpenRouter API key.")
+          throw new ProviderError("Invalid OpenRouter API key.", "INVALID_API_KEY")
         }
-        throw new ProviderError("Connection test failed for OpenRouter.")
+        if (response.status === 429) {
+          throw new ProviderError("OpenRouter Rate limit exceeded.", "RATE_LIMITED")
+        }
+        throw new ProviderError(`Connection test failed for OpenRouter. Status: ${response.status}`, "PROVIDER_ERROR")
       }
       
       return true
     } catch (error: any) {
       if (error instanceof ProviderError) throw error
-      throw new ProviderError("Connection test failed for OpenRouter.")
+      throw new ProviderError("Connection test failed for OpenRouter.", "NETWORK_ERROR")
     }
   }
 }
