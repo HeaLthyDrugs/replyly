@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { AIManager } from "./lib/ai/manager"
 import type { AIConfig, ProviderId } from "./lib/ai/types"
+import { RlyLogoIcon } from "./components/Logo"
 
 interface CurrentSiteInfo {
   name: string
@@ -117,24 +118,25 @@ function IndexPopup() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "7px",
-              backgroundColor: "#e8f5fd",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="#1d9bf0">
-              <path d="M12 2L9.5 9.5L2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z" />
-            </svg>
+          <RlyLogoIcon size={28} />
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "16px", fontWeight: 800, letterSpacing: "-0.2px" }}>
+              Replyly
+            </span>
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                backgroundColor: "#f5f3ff",
+                color: "#7c3aed",
+                padding: "2px 5px",
+                borderRadius: "4px",
+                border: "1px solid #ddd6fe"
+              }}
+            >
+              RLY
+            </span>
           </div>
-          <span style={{ fontSize: "16px", fontWeight: 800, letterSpacing: "-0.2px" }}>
-            Replyly
-          </span>
         </div>
 
         {/* Quick Settings Icon Button */}
@@ -300,7 +302,7 @@ function IndexPopup() {
               padding: "6px 12px",
               borderRadius: "8px",
               border: hasApiKey ? "1px solid #cfd9de" : "none",
-              backgroundColor: hasApiKey ? "#ffffff" : "#1d9bf0",
+              backgroundColor: hasApiKey ? "#ffffff" : "#7c3aed",
               color: hasApiKey ? "#0f1419" : "#ffffff",
               fontWeight: 700,
               fontSize: "12px",
@@ -311,14 +313,14 @@ function IndexPopup() {
               if (hasApiKey) {
                 e.currentTarget.style.backgroundColor = "#f8fafc"
               } else {
-                e.currentTarget.style.backgroundColor = "#1a8cd8"
+                e.currentTarget.style.backgroundColor = "#6d28d9"
               }
             }}
             onMouseLeave={(e) => {
               if (hasApiKey) {
                 e.currentTarget.style.backgroundColor = "#ffffff"
               } else {
-                e.currentTarget.style.backgroundColor = "#1d9bf0"
+                e.currentTarget.style.backgroundColor = "#7c3aed"
               }
             }}
           >

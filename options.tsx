@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { AIManager, DEFAULT_CONFIG, PROVIDERS } from "./lib/ai/manager"
 import type { AIConfig, ProviderId, AIAccount } from "./lib/ai/types"
+import { RlyLogoIcon } from "./components/Logo"
 
 export type SettingsTab = "providers" | "failover" | "preferences" | "guides"
 
@@ -25,7 +26,7 @@ const PROVIDER_METADATA: Record<ProviderId, { name: string; badge: string; icon:
   gemini: {
     name: "Google Gemini",
     badge: "Free Tier Available",
-    icon: "✨",
+    icon: "💎",
     description: "Google's flagship AI. Generous free tier with high rate limits.",
     link: "https://aistudio.google.com/app/apikey",
     portalName: "Google AI Studio"
@@ -59,7 +60,9 @@ const TONES = [
   { value: "Contrarian", label: "Contrarian", emoji: "🤔", desc: "Respectful alternate perspective" }
 ]
 
-function Options() {
+const RLY_FAVICON_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAADb0lEQVR4nO1WW0iTYRi28K6DYjeaWBcFgoIJWc6c5rFs0yzdhUJdSBCEFF6U8zRtE0/plMCIKDLocKGZmzdlkUuiwAsVDBsdNHXLnU/+5mFO33i/+f0bhexgIoQP/PD9/354nv99n/d9FhCwjW34iJ07AgOjw84Kzse2dxQl9CqKOHLFuZj2jqjQHAH+tqnk4cGxcddSB5WSHBNIsk0g5htBzDPCzTN4GaCY+1G5f29s3KaQHwzhcEU8FbMeeU2WAWpO66Es/QdzIDieuyXk1af0UJ2pA2HqBBMRfPzfiPCVXJSBlxaEKeNMRNAGRfhLXpWuhao0LZQmf/dfhD/kDXl6qM3WEfKqVA2I0jUgzp3wXQS6Hcnr88xw76oVZG1zIGtloLNuFiR8J3lDngFaL5pAwtez5CsOAPUXO1RnaKAyRQOjb+cBcad4ignbfcS76cBZpqMmb5uDPzHYO0++fOT1Arl/cctGyo5fzphWyDN5qw0elBjJGUW1FOjg8tEBpVd7ApcMLbtsTcD4iB1kUoacLVoHKftIn0sA7Xl3o5U8+2VdAe3EMjm/e8JAOVcNZVw1RO7jCzwKwA1He45lR4y9X4T7JRaXgEwdDK8J6G6ysT3Hsk+P2dlqzZocIM6aIeRliSrgH27t8CgA1ys1HBXgDuWHRdJzlwArS16ZMgN3rxjYd7vqzCy58IQKCqM7FZ4FcOQK6nZadoqpT3ZoyDeQng/3OQ2GZafkFSdnoCL5J/t+k0DDkgsTVFAY5YUADBY6aj3SWWdPbU5zLTCr0FxgID0ffuUuwEVenuQmIF/DkpdypoF3SOq5BZhqdM57WpwC0HDjQ0vkPNq/QHpOBUyOLsHQy3kYeMoQcjQcRWOehiUvjZ+GyBCeZxPiqGCq4aj1NDsFYL9vFxlheWmV3D8SmlkBFGaNg3W7S8AMS34ppt+7MURgpGKq4ZKRXjBCXa6elP3NQ6cnepqtUJuthWfVZnheb4Guegs8LjeyhtNPLsPS/CrUZKoJeUncZyZ0V4xvMY2RiqnmvtvR7S0F+r96Tr+cGk6UpgZxlos8fM8x//IAIxVTzX3OPZG793xD5KyIoONcTLUtIXcXcSPpG7Ml5O4irid+ZbaEnAIjFVNtPXIcNZ/d7itwljHVMFhwt+N6xQ2HS2bT/5Zv47/Eb4tqgGNC1bwjAAAAAElFTkSuQmCC"
+
+export function Options() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("providers")
   const [searchQuery, setSearchQuery] = useState("")
   
@@ -93,6 +96,17 @@ function Options() {
   const providerList: ProviderId[] = ["gemini", "groq", "openrouter"]
 
   useEffect(() => {
+    // 0. Set Title and Favicon
+    document.title = "Replyly Settings"
+    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement
+    if (!link) {
+      link = document.createElement("link")
+      link.rel = "icon"
+      document.head.appendChild(link)
+    }
+    link.type = "image/png"
+    link.href = RLY_FAVICON_DATA_URI
+
     // 1. Load AI Config
     AIManager.getConfig().then(c => {
       setConfig(c)
@@ -237,110 +251,86 @@ function Options() {
 
   const removeAccount = async (providerId: ProviderId, accountId: string) => {
     const newConfig = { ...config }
-    const pConfig = newConfig.providers[providerId]
-    if (pConfig && pConfig.accounts) {
-      pConfig.accounts = pConfig.accounts.filter(a => a.id !== accountId)
+    if (newConfig.providers[providerId]) {
+      newConfig.providers[providerId]!.accounts = newConfig.providers[providerId]!.accounts.filter(a => a.id !== accountId)
+      
+      if (newConfig.providers[providerId]!.accounts.length === 0 && newConfig.activeProvider === providerId) {
+        const remaining = providerList.find(p => (newConfig.providers[p]?.accounts.length || 0) > 0) || null
+        newConfig.activeProvider = remaining
+      }
     }
-
-    // If active provider has no accounts left, pick another provider or null
-    if (newConfig.activeProvider === providerId) {
-      const remainingProviders = providerList.filter(id => (newConfig.providers[id]?.accounts.length || 0) > 0)
-      newConfig.activeProvider = remainingProviders[0] || null
-    }
-
     setConfig(newConfig)
     await AIManager.saveConfig(newConfig)
     setDeleteConfirmId(null)
-    showStatus(`Account deleted.`, "info")
+    showStatus("Account deleted.", "info")
   }
 
-  const testAccount = async (providerId: ProviderId, accountId: string) => {
-    const pConfig = config.providers[providerId]
-    const account = pConfig?.accounts.find(a => a.id === accountId)
-    if (!account) return
-
-    setTestingId(accountId)
-    const startTime = Date.now()
-
+  const testAccount = async (providerId: ProviderId, account: AIAccount) => {
+    setTestingId(account.id)
     try {
-      const provider = PROVIDERS[providerId]
-      const success = await provider.testConnection(account.apiKey, account.model)
-      const duration = Date.now() - startTime
-      
-      if (success) {
-        showStatus(`✓ Success! Connected in ${duration}ms`, "success")
-        await AIManager.updateAccountState(providerId, accountId, { status: "healthy", cooldownUntil: null })
-        const c = await AIManager.getConfig()
-        setConfig(c)
-      }
+      await AIManager.testAccountConnection(providerId, account)
+      const updated = await AIManager.getConfig()
+      setConfig(updated)
+      showStatus(`✓ ${account.name} verified successfully!`, "success")
     } catch (err: any) {
-      showStatus(err.message || "Connection failed. Please check the API key.", "error")
-      await AIManager.updateAccountState(providerId, accountId, { 
-        status: err.type === "RATE_LIMITED" ? "rate_limited" : (err.type === "INVALID_API_KEY" ? "invalid" : "unknown")
-      })
-      const c = await AIManager.getConfig()
-      setConfig(c)
+      const updated = await AIManager.getConfig()
+      setConfig(updated)
+      showStatus(`✕ Test failed: ${err.message}`, "error")
     } finally {
       setTestingId(null)
     }
   }
 
-  // Preference handlers
   const handleExtensionToggle = (enabled: boolean) => {
     setIsExtensionEnabled(enabled)
     chrome.storage.local.set({ isExtensionEnabled: enabled })
-    showStatus(`Replyly extension is now ${enabled ? "turned ON" : "turned OFF"}`, "info")
+    showStatus(`Extension ${enabled ? "enabled" : "disabled"}`, "info")
   }
 
   const handleDefaultToneChange = (tone: string) => {
     setDefaultTone(tone)
     chrome.storage.local.set({ replyly_defaultTone: tone })
-    showStatus(`Default tone set to "${tone}"`, "success")
+    showStatus(`Default tone set to ${tone}`, "success")
   }
 
-  const handleNumRepliesChange = (count: number) => {
-    setDefaultNumReplies(count)
-    chrome.storage.local.set({ replyly_numReplies: count })
-    showStatus(`Default reply count set to ${count}`, "success")
+  const handleNumRepliesChange = (num: number) => {
+    setDefaultNumReplies(num)
+    chrome.storage.local.set({ replyly_numReplies: num })
+    showStatus(`Default replies count set to ${num}`, "success")
   }
 
-  const handleGlobalCustomPromptChange = (val: string) => {
-    setGlobalCustomPrompt(val)
-    chrome.storage.local.set({ replyly_globalCustomPrompt: val })
+  const handleGlobalCustomPromptChange = (prompt: string) => {
+    setGlobalCustomPrompt(prompt)
+    chrome.storage.local.set({ replyly_globalCustomPrompt: prompt })
   }
 
-  // Search filter helper
   const totalConfiguredAccounts = useMemo(() => {
-    return providerList.reduce((acc, id) => acc + (config.providers[id]?.accounts.length || 0), 0)
+    return Object.values(config.providers).reduce((sum, p) => sum + (p?.accounts.length || 0), 0)
   }, [config])
 
   const filteredProviders = useMemo(() => {
     if (!searchQuery.trim()) return providerList
-    const q = searchQuery.toLowerCase().trim()
+    const q = searchQuery.toLowerCase()
     return providerList.filter(id => {
       const meta = PROVIDER_METADATA[id]
-      const accounts = config.providers[id]?.accounts || []
-      const models = MODELS[id]
-      return (
-        meta.name.toLowerCase().includes(q) ||
-        meta.description.toLowerCase().includes(q) ||
-        accounts.some(a => a.name.toLowerCase().includes(q) || a.model.toLowerCase().includes(q)) ||
-        models.some(m => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
-      )
+      const matchesName = meta.name.toLowerCase().includes(q)
+      const matchesDesc = meta.description.toLowerCase().includes(q)
+      const matchesModel = MODELS[id].some(m => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
+      return matchesName || matchesDesc || matchesModel
     })
-  }, [searchQuery, config])
+  }, [searchQuery, providerList])
 
-  const getCooldownText = (timestamp: number | null) => {
-    if (!timestamp) return null
-    const diff = timestamp - Date.now()
+  const getCooldownText = (cooldownUntil: number | null | undefined) => {
+    if (!cooldownUntil) return null
+    const diff = cooldownUntil - Date.now()
     if (diff <= 0) return null
-    return `Available again in ${Math.ceil(diff / 1000)}s`
+    return `Cooldown active (${Math.ceil(diff / 1000)}s left)`
   }
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", fontFamily: "system-ui, sans-serif", color: "#64748b" }}>
-        Loading Replyly Settings...
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "#ffffff", fontFamily: "system-ui, sans-serif", color: "#7c3aed", fontWeight: 700 }}>
+        Loading Settings...
       </div>
     )
   }
@@ -348,447 +338,248 @@ function Options() {
   return (
     <div style={{
       minHeight: "100vh",
-      backgroundColor: "#f8fafc",
+      backgroundColor: "#fafafa",
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      color: "#0f172a",
-      padding: "24px 16px 80px",
+      color: "#111827",
       boxSizing: "border-box"
     }}>
-      <div style={{ maxWidth: "780px", margin: "0 auto" }}>
+      <style>{`
+        @keyframes rly-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+
+      {/* Main Structured Column with Left & Right Vertical Separators */}
+      <div style={{
+        maxWidth: "840px",
+        margin: "0 auto",
+        minHeight: "100vh",
+        backgroundColor: "#ffffff",
+        borderLeft: "1px solid #e5e7eb",
+        borderRight: "1px solid #e5e7eb",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column"
+      }}>
         
-        {/* Top Header Card */}
-        <header style={{
-          backgroundColor: "#ffffff",
-          borderRadius: "20px",
-          padding: "20px 24px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          border: "1px solid #e2e8f0",
-          marginBottom: "20px"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "12px",
-                backgroundColor: "#e0f2fe",
-                color: "#0284c7",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "22px"
-              }}>
-                ✨
+        {/* Header Section */}
+        <div style={{ padding: "36px 32px 0 32px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <RlyLogoIcon size={30} />
+                <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 800, color: "#111827", letterSpacing: "-0.6px" }}>
+                  Settings
+                </h1>
               </div>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.4px" }}>
-                    Replyly Settings
-                  </h1>
-                  <span style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    borderRadius: "9999px",
-                    backgroundColor: isExtensionEnabled ? "#dcfce7" : "#f1f5f9",
-                    color: isExtensionEnabled ? "#15803d" : "#64748b"
-                  }}>
-                    {isExtensionEnabled ? "● Extension Active" : "○ Turned Off"}
-                  </span>
-                </div>
-                <p style={{ margin: "3px 0 0", fontSize: "13px", color: "#64748b" }}>
-                  Super simple AI configuration. Your keys never leave your browser.
-                </p>
-              </div>
+              <p style={{ margin: "6px 0 0", fontSize: "14px", color: "#6b7280", lineHeight: "1.5" }}>
+                Manage your AI provider keys, failover rules, and reply preferences.
+              </p>
             </div>
 
-            {/* Quick Extension Master Toggle */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "#475569" }}>
-                Extension Power:
+            {/* Extension Power Toggle */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: "8px",
+              padding: "5px 12px", backgroundColor: "#f9fafb", borderRadius: "9999px", border: "1px solid #e5e7eb"
+            }}>
+              <span style={{ fontSize: "12.5px", fontWeight: 600, color: "#4b5563" }}>
+                Extension:
               </span>
               <button
                 onClick={() => handleExtensionToggle(!isExtensionEnabled)}
                 style={{
-                  padding: "6px 14px",
-                  borderRadius: "9999px",
+                  display: "flex", alignItems: "center", gap: "6px",
+                  background: "none", border: "none", cursor: "pointer", padding: 0,
+                  fontSize: "12.5px", fontWeight: 700,
+                  color: isExtensionEnabled ? "#7c3aed" : "#9ca3af"
+                }}
+              >
+                <span style={{
+                  width: "8px", height: "8px", borderRadius: "50%",
+                  backgroundColor: isExtensionEnabled ? "#7c3aed" : "#9ca3af"
+                }} />
+                {isExtensionEnabled ? "Active" : "Disabled"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Full-bleed Line Tabs Bar touching left and right vertical borders */}
+        <div
+          className="no-scrollbar"
+          style={{
+            display: "flex",
+            gap: "32px",
+            borderBottom: "1px solid #e5e7eb",
+            marginTop: "24px",
+            paddingLeft: "32px",
+            paddingRight: "32px",
+            overflow: "hidden"
+          }}
+        >
+          {[
+            { id: "providers", label: "AI Providers & Keys", count: totalConfiguredAccounts },
+            { id: "failover", label: "Smart Failover" },
+            { id: "preferences", label: "Preferences" },
+            { id: "guides", label: "Guides & FAQ" }
+          ].map(tab => {
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as SettingsTab)}
+                style={{
+                  padding: "12px 2px",
+                  background: "none",
                   border: "none",
-                  backgroundColor: isExtensionEnabled ? "#10b981" : "#cbd5e1",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: 700,
+                  borderBottom: isActive ? "2px solid #7c3aed" : "2px solid transparent",
+                  color: isActive ? "#7c3aed" : "#6b7280",
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: "14px",
                   cursor: "pointer",
+                  marginBottom: "-1px",
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  transition: "all 0.15s ease"
+                  gap: "8px",
+                  transition: "all 0.15s ease",
+                  whiteSpace: "nowrap"
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.color = "#111827"
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) e.currentTarget.style.color = "#6b7280"
                 }}
               >
-                {isExtensionEnabled ? "ON" : "OFF"}
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span style={{
+                    fontSize: "11px", fontWeight: 700, padding: "1px 7px",
+                    borderRadius: "9999px",
+                    backgroundColor: isActive ? "#f5f3ff" : "#f3f4f6",
+                    color: isActive ? "#7c3aed" : "#6b7280"
+                  }}>
+                    {tab.count}
+                  </span>
+                )}
               </button>
-            </div>
-          </div>
+            )
+          })}
+        </div>
 
-          {/* Universal Search Bar */}
-          <div style={{ marginTop: "16px", position: "relative" }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              backgroundColor: "#f1f5f9",
-              borderRadius: "12px",
-              padding: "10px 14px",
-              border: "1px solid #e2e8f0"
-            }}>
-              <span style={{ fontSize: "16px", color: "#64748b" }}>🔍</span>
-              <input
-                type="text"
-                placeholder="Search settings, AI providers, models, or guides..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: "none",
-                  outline: "none",
-                  fontSize: "14px",
-                  color: "#0f172a"
-                }}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  style={{
-                    border: "none",
-                    background: "#cbd5e1",
-                    color: "#475569",
-                    borderRadius: "50%",
-                    width: "20px",
-                    height: "20px",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            {searchQuery && (
-              <div style={{ fontSize: "12px", color: "#64748b", marginTop: "6px", paddingLeft: "4px" }}>
-                Found matches in <strong>{filteredProviders.length}</strong> AI provider{filteredProviders.length !== 1 ? "s" : ""}
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* Quick First-Time Onboarding Banner (if no accounts added) */}
-        {totalConfiguredAccounts === 0 && (
-          <div style={{
-            backgroundColor: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            borderRadius: "16px",
-            padding: "18px 20px",
-            marginBottom: "20px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "12px"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "28px" }}>👋</span>
-              <div>
-                <div style={{ fontSize: "15px", fontWeight: 800, color: "#1e40af" }}>
-                  Get started in 30 seconds
-                </div>
-                <div style={{ fontSize: "13px", color: "#3b82f6" }}>
-                  Add a 100% free Google Gemini key or Groq key to start generating replies immediately!
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                onClick={() => {
-                  setActiveTab("providers")
-                  startAdding("gemini")
-                }}
-                style={{
-                  backgroundColor: "#2563eb",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "10px",
-                  padding: "8px 16px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: "pointer"
-                }}
-              >
-                + Add Free Gemini Key
-              </button>
-              <button
-                onClick={() => setActiveTab("guides")}
-                style={{
-                  backgroundColor: "#ffffff",
-                  color: "#2563eb",
-                  border: "1px solid #bfdbfe",
-                  borderRadius: "10px",
-                  padding: "8px 14px",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  cursor: "pointer"
-                }}
-              >
-                View Step-by-Step Guide
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation Tabs */}
-        <nav style={{
-          display: "flex",
-          gap: "8px",
-          marginBottom: "20px",
-          backgroundColor: "#ffffff",
-          padding: "6px",
-          borderRadius: "14px",
-          border: "1px solid #e2e8f0",
-          overflowX: "auto"
-        }}>
-          <button
-            onClick={() => setActiveTab("providers")}
-            style={{
-              flex: 1,
-              padding: "10px 16px",
-              borderRadius: "10px",
-              border: "none",
-              backgroundColor: activeTab === "providers" ? "#0284c7" : "transparent",
-              color: activeTab === "providers" ? "#ffffff" : "#475569",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              whiteSpace: "nowrap",
-              transition: "all 0.15s ease"
-            }}
-          >
-            <span>🔑</span> AI Providers & Keys
-            {totalConfiguredAccounts > 0 && (
-              <span style={{
-                backgroundColor: activeTab === "providers" ? "rgba(255,255,255,0.25)" : "#f1f5f9",
-                color: activeTab === "providers" ? "#ffffff" : "#475569",
-                padding: "2px 8px",
-                borderRadius: "9999px",
-                fontSize: "11px"
-              }}>
-                {totalConfiguredAccounts}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("failover")}
-            style={{
-              flex: 1,
-              padding: "10px 16px",
-              borderRadius: "10px",
-              border: "none",
-              backgroundColor: activeTab === "failover" ? "#0284c7" : "transparent",
-              color: activeTab === "failover" ? "#ffffff" : "#475569",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              whiteSpace: "nowrap",
-              transition: "all 0.15s ease"
-            }}
-          >
-            <span>🛡️</span> Smart Failover
-          </button>
-
-          <button
-            onClick={() => setActiveTab("preferences")}
-            style={{
-              flex: 1,
-              padding: "10px 16px",
-              borderRadius: "10px",
-              border: "none",
-              backgroundColor: activeTab === "preferences" ? "#0284c7" : "transparent",
-              color: activeTab === "preferences" ? "#ffffff" : "#475569",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              whiteSpace: "nowrap",
-              transition: "all 0.15s ease"
-            }}
-          >
-            <span>⚙️</span> Preferences
-          </button>
-
-          <button
-            onClick={() => setActiveTab("guides")}
-            style={{
-              flex: 1,
-              padding: "10px 16px",
-              borderRadius: "10px",
-              border: "none",
-              backgroundColor: activeTab === "guides" ? "#0284c7" : "transparent",
-              color: activeTab === "guides" ? "#ffffff" : "#475569",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              whiteSpace: "nowrap",
-              transition: "all 0.15s ease"
-            }}
-          >
-            <span>📖</span> Guides & Help
-          </button>
-        </nav>
+        {/* Content Section between the Vertical Separators */}
+        <div style={{ padding: "28px 32px 80px 32px", flex: 1 }}>
 
         {/* TAB 1: AI PROVIDERS & KEYS */}
         {activeTab === "providers" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             
-            {/* Primary Provider Selector Card */}
+            {/* Primary Provider Selector */}
             <div style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "16px",
-              padding: "20px",
-              border: "1px solid #e2e8f0",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+              backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 22px",
+              border: "1px solid #e5e7eb"
             }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
+                  <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#111827" }}>
                     Primary AI Provider
                   </h2>
-                  <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>
-                    Select which AI provider is used first when generating replies.
+                  <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#6b7280" }}>
+                    Select which AI engine handles your replies by default.
                   </p>
                 </div>
                 {config.activeProvider && (
                   <span style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    padding: "4px 10px",
-                    borderRadius: "9999px",
-                    backgroundColor: "#e0f2fe",
-                    color: "#0369a1"
+                    fontSize: "12px", fontWeight: 700, padding: "3px 10px", borderRadius: "9999px",
+                    backgroundColor: "#f5f3ff", color: "#7c3aed", border: "1px solid #ddd6fe"
                   }}>
                     Active: {PROVIDERS[config.activeProvider].name}
                   </span>
                 )}
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginTop: "14px" }}>
+              {/* 3 Selectable Provider Cards */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
                 {providerList.map(id => {
                   const meta = PROVIDER_METADATA[id]
-                  const hasAccounts = (config.providers[id]?.accounts.length || 0) > 0
                   const isSelected = config.activeProvider === id
+                  const accountCount = config.providers[id]?.accounts.length || 0
 
                   return (
-                    <button
+                    <div
                       key={id}
-                      onClick={() => hasAccounts && handleActiveProviderChange(id)}
-                      disabled={!hasAccounts}
+                      onClick={() => handleActiveProviderChange(id)}
                       style={{
-                        padding: "14px",
-                        borderRadius: "12px",
-                        border: isSelected ? "2px solid #0284c7" : "1px solid #e2e8f0",
-                        backgroundColor: isSelected ? "#f0f9ff" : hasAccounts ? "#ffffff" : "#f8fafc",
-                        cursor: hasAccounts ? "pointer" : "not-allowed",
-                        textAlign: "left",
-                        opacity: hasAccounts ? 1 : 0.6,
-                        transition: "all 0.15s ease",
+                        padding: "14px 16px", borderRadius: "12px",
+                        border: isSelected ? "2px solid #7c3aed" : "1px solid #e5e7eb",
+                        backgroundColor: isSelected ? "#faf5ff" : "#ffffff",
+                        cursor: "pointer", transition: "all 0.15s ease",
                         position: "relative"
                       }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = "#d1d5db"
+                          e.currentTarget.style.backgroundColor = "#f9fafb"
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = "#e5e7eb"
+                          e.currentTarget.style.backgroundColor = "#ffffff"
+                        }
+                      }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <span style={{ fontSize: "18px" }}>{meta.icon}</span>
-                          <span style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>{meta.name}</span>
+                          <span style={{ fontSize: "14px", fontWeight: 700, color: isSelected ? "#7c3aed" : "#111827" }}>
+                            {meta.name}
+                          </span>
                         </div>
                         {isSelected && (
-                          <span style={{ color: "#0284c7", fontSize: "16px", fontWeight: 800 }}>✓</span>
+                          <span style={{ color: "#7c3aed", fontWeight: 800, fontSize: "15px" }}>✓</span>
                         )}
                       </div>
-                      <div style={{ fontSize: "12px", color: hasAccounts ? "#64748b" : "#94a3b8", marginTop: "6px" }}>
-                        {hasAccounts ? `${config.providers[id]!.accounts.length} key connected` : "No key connected yet"}
+                      <div style={{ fontSize: "12px", color: accountCount > 0 ? "#059669" : "#6b7280", fontWeight: 500 }}>
+                        {accountCount > 0 ? `${accountCount} key connected` : "No key added yet"}
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
             </div>
 
-            {/* Provider List Sections */}
+            {/* Provider Configuration Cards */}
             {filteredProviders.map(id => {
               const meta = PROVIDER_METADATA[id]
-              const pConfig = config.providers[id]
-              const accounts = pConfig?.accounts || []
+              const accounts = config.providers[id]?.accounts || []
               const isAddingNew = editingProvider === id && !editingAccountId
 
               return (
                 <div
                   key={id}
                   style={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "16px",
-                    border: "1px solid #e2e8f0",
-                    padding: "20px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+                    backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 22px",
+                    border: "1px solid #e5e7eb"
                   }}
                 >
-                  {/* Provider Header */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+                  {/* Card Header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "10px",
-                        backgroundColor: "#f1f5f9",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "18px"
-                      }}>
-                        {meta.icon}
-                      </div>
+                      <span style={{ fontSize: "22px" }}>{meta.icon}</span>
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
+                          <h3 style={{ margin: 0, fontSize: "15.5px", fontWeight: 700, color: "#111827" }}>
                             {meta.name}
                           </h3>
                           <span style={{
-                            fontSize: "11px",
-                            fontWeight: 700,
-                            padding: "2px 8px",
-                            borderRadius: "9999px",
-                            backgroundColor: "#f1f5f9",
-                            color: "#475569"
+                            fontSize: "11px", fontWeight: 600, padding: "2px 7px", borderRadius: "9999px",
+                            backgroundColor: "#f3f4f6", color: "#4b5563"
                           }}>
                             {meta.badge}
                           </span>
                         </div>
-                        <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>
+                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", color: "#6b7280" }}>
                           {meta.description}
                         </p>
                       </div>
@@ -800,14 +591,9 @@ function Options() {
                         target="_blank"
                         rel="noreferrer"
                         style={{
-                          fontSize: "12px",
-                          color: "#0284c7",
-                          textDecoration: "none",
-                          fontWeight: 600,
-                          padding: "6px 10px",
-                          borderRadius: "8px",
-                          backgroundColor: "#f0f9ff",
-                          border: "1px solid #bae6fd"
+                          fontSize: "12px", color: "#7c3aed", textDecoration: "none",
+                          fontWeight: 700, padding: "6px 12px", borderRadius: "8px",
+                          backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe"
                         }}
                       >
                         Get Free Key ↗
@@ -817,18 +603,12 @@ function Options() {
                         <button
                           onClick={() => startAdding(id)}
                           style={{
-                            backgroundColor: "#0284c7",
-                            color: "#ffffff",
-                            border: "none",
-                            padding: "6px 12px",
-                            borderRadius: "8px",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px"
+                            backgroundColor: "#7c3aed", color: "#ffffff", border: "none",
+                            padding: "6px 14px", borderRadius: "8px", fontSize: "12px",
+                            fontWeight: 700, cursor: "pointer"
                           }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6d28d9"}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#7c3aed"}
                         >
                           + Add Key
                         </button>
@@ -836,129 +616,92 @@ function Options() {
                     </div>
                   </div>
 
-                  {/* Configured Accounts List */}
+                  {/* Connected Accounts List */}
                   {accounts.length > 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: isAddingNew ? "16px" : "0" }}>
-                      {accounts.map(account => {
-                        const cooldownText = getCooldownText(account.cooldownUntil)
-                        const isHealthy = account.status === "healthy"
-                        const isRateLimited = account.status === "rate_limited" || Boolean(cooldownText)
-                        const isInvalid = account.status === "invalid"
-                        const isTesting = testingId === account.id
-                        const isEditingThis = editingProvider === id && editingAccountId === account.id
-
-                        if (isEditingThis) return null // Handled in edit pane below
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: editingProvider === id ? "14px" : "0" }}>
+                      {accounts.map(acc => {
+                        const isTesting = testingId === acc.id
+                        const cooldown = getCooldownText(acc.cooldownUntil)
+                        const modelInfo = MODELS[id].find(m => m.id === acc.model)
 
                         return (
                           <div
-                            key={account.id}
+                            key={acc.id}
                             style={{
-                              border: "1px solid #e2e8f0",
-                              borderRadius: "12px",
-                              padding: "14px 16px",
-                              backgroundColor: isRateLimited ? "#fffbeb" : isInvalid ? "#fef2f2" : "#f8fafc",
-                              opacity: account.enabled ? 1 : 0.65,
-                              transition: "all 0.15s ease"
+                              padding: "12px 14px", borderRadius: "10px",
+                              backgroundColor: "#f9fafb", border: "1px solid #e5e7eb",
+                              display: "flex", alignItems: "center", justifyContent: "space-between",
+                              flexWrap: "wrap", gap: "10px"
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <div style={{
+                                width: "8px", height: "8px", borderRadius: "50%",
+                                backgroundColor: !acc.enabled ? "#9ca3af" : cooldown ? "#f59e0b" : "#10b981",
+                                animation: acc.enabled && !cooldown ? "rly-pulse 2s infinite" : "none"
+                              }} />
                               <div>
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                  <span style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
-                                    {account.name}
+                                  <span style={{ fontSize: "13.5px", fontWeight: 700, color: "#111827" }}>
+                                    {acc.name}
                                   </span>
-                                  <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", backgroundColor: "#ffffff", padding: "2px 6px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-                                    {account.model}
+                                  <span style={{
+                                    fontSize: "11px", fontWeight: 600, padding: "1px 6px", borderRadius: "4px",
+                                    backgroundColor: "#ffffff", color: "#4b5563", border: "1px solid #e5e7eb"
+                                  }}>
+                                    {modelInfo?.name || acc.model}
                                   </span>
-                                  {!account.enabled && (
-                                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#ef4444", backgroundColor: "#fee2e2", padding: "2px 6px", borderRadius: "6px" }}>
-                                      Disabled
-                                    </span>
-                                  )}
                                 </div>
-
-                                {/* Status Tag */}
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px", fontSize: "12px", fontWeight: 600 }}>
-                                  {isInvalid ? (
-                                    <span style={{ color: "#dc2626" }}>🔴 Invalid API Key (Please update)</span>
-                                  ) : isRateLimited ? (
-                                    <span style={{ color: "#d97706" }}>🟡 Rate limited {cooldownText ? `— ${cooldownText}` : ""}</span>
-                                  ) : isHealthy ? (
-                                    <span style={{ color: "#16a34a" }}>🟢 Ready & Healthy</span>
-                                  ) : (
-                                    <span style={{ color: "#64748b" }}>⚪ Connected (Not tested yet)</span>
-                                  )}
+                                <div style={{ fontSize: "11px", color: !acc.enabled ? "#6b7280" : cooldown ? "#d97706" : "#059669", marginTop: "2px", fontWeight: 500 }}>
+                                  {!acc.enabled ? "Disabled" : cooldown ? cooldown : "Ready & Active"}
                                 </div>
                               </div>
+                            </div>
 
-                              {/* Account Actions */}
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <button
-                                  onClick={() => testAccount(id, account.id)}
-                                  disabled={isTesting}
-                                  title="Test connection with this key"
-                                  style={{
-                                    padding: "6px 12px",
-                                    borderRadius: "8px",
-                                    border: "1px solid #cbd5e1",
-                                    backgroundColor: "#ffffff",
-                                    fontSize: "12px",
-                                    fontWeight: 700,
-                                    color: "#334155",
-                                    cursor: isTesting ? "wait" : "pointer"
-                                  }}
-                                >
-                                  {isTesting ? "Testing..." : "⚡ Test"}
-                                </button>
-
-                                <button
-                                  onClick={() => toggleAccountEnabled(id, account.id, account.enabled)}
-                                  style={{
-                                    padding: "6px 10px",
-                                    borderRadius: "8px",
-                                    border: "1px solid #cbd5e1",
-                                    backgroundColor: "#ffffff",
-                                    fontSize: "12px",
-                                    fontWeight: 600,
-                                    color: account.enabled ? "#475569" : "#16a34a",
-                                    cursor: "pointer"
-                                  }}
-                                >
-                                  {account.enabled ? "Disable" : "Enable"}
-                                </button>
-
-                                <button
-                                  onClick={() => startEditing(id, account)}
-                                  style={{
-                                    padding: "6px 10px",
-                                    borderRadius: "8px",
-                                    border: "1px solid #cbd5e1",
-                                    backgroundColor: "#ffffff",
-                                    fontSize: "12px",
-                                    fontWeight: 600,
-                                    color: "#0f172a",
-                                    cursor: "pointer"
-                                  }}
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  onClick={() => setDeleteConfirmId({ providerId: id, accountId: account.id })}
-                                  style={{
-                                    padding: "6px 10px",
-                                    borderRadius: "8px",
-                                    border: "1px solid #fee2e2",
-                                    backgroundColor: "#fff5f5",
-                                    fontSize: "12px",
-                                    fontWeight: 600,
-                                    color: "#dc2626",
-                                    cursor: "pointer"
-                                  }}
-                                >
-                                  Delete
-                                </button>
-                              </div>
+                            {/* Account Actions */}
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <button
+                                onClick={() => testAccount(id, acc)}
+                                disabled={isTesting}
+                                style={{
+                                  padding: "5px 10px", borderRadius: "6px",
+                                  backgroundColor: "#ffffff", border: "1px solid #d1d5db",
+                                  fontSize: "11.5px", fontWeight: 600, color: "#374151",
+                                  cursor: isTesting ? "not-allowed" : "pointer"
+                                }}
+                              >
+                                {isTesting ? "Testing..." : "⚡ Test"}
+                              </button>
+                              <button
+                                onClick={() => toggleAccountEnabled(id, acc.id, acc.enabled)}
+                                style={{
+                                  padding: "5px 10px", borderRadius: "6px",
+                                  backgroundColor: "#ffffff", border: "1px solid #d1d5db",
+                                  fontSize: "11.5px", fontWeight: 600, color: "#374151", cursor: "pointer"
+                                }}
+                              >
+                                {acc.enabled ? "Disable" : "Enable"}
+                              </button>
+                              <button
+                                onClick={() => startEditing(id, acc)}
+                                style={{
+                                  padding: "5px 10px", borderRadius: "6px",
+                                  backgroundColor: "#ffffff", border: "1px solid #d1d5db",
+                                  fontSize: "11.5px", fontWeight: 600, color: "#374151", cursor: "pointer"
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId({ providerId: id, accountId: acc.id })}
+                                style={{
+                                  padding: "5px 10px", borderRadius: "6px",
+                                  backgroundColor: "#fef2f2", border: "1px solid #fecaca",
+                                  fontSize: "11.5px", fontWeight: 600, color: "#dc2626", cursor: "pointer"
+                                }}
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
                         )
@@ -966,29 +709,22 @@ function Options() {
                     </div>
                   )}
 
-                  {/* Empty state for provider */}
-                  {accounts.length === 0 && !isAddingNew && (
+                  {/* Empty State */}
+                  {accounts.length === 0 && editingProvider !== id && (
                     <div style={{
-                      textAlign: "center",
-                      padding: "20px",
-                      backgroundColor: "#f8fafc",
-                      borderRadius: "12px",
-                      border: "1px dashed #cbd5e1"
+                      padding: "16px", borderRadius: "10px",
+                      backgroundColor: "#f9fafb", border: "1px dashed #e5e7eb",
+                      textAlign: "center"
                     }}>
-                      <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "8px" }}>
+                      <div style={{ fontSize: "13px", color: "#6b7280", marginBottom: "8px" }}>
                         No API keys configured for {meta.name} yet.
                       </div>
                       <button
                         onClick={() => startAdding(id)}
                         style={{
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #cbd5e1",
-                          color: "#0284c7",
-                          padding: "6px 14px",
-                          borderRadius: "8px",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          cursor: "pointer"
+                          backgroundColor: "#ffffff", border: "1px solid #d1d5db",
+                          color: "#7c3aed", padding: "5px 12px", borderRadius: "6px",
+                          fontSize: "12px", fontWeight: 700, cursor: "pointer"
                         }}
                       >
                         + Add {meta.name} Key
@@ -999,48 +735,42 @@ function Options() {
                   {/* Add / Edit Form Pane */}
                   {editingProvider === id && (
                     <div style={{
-                      backgroundColor: "#f8fafc",
-                      borderRadius: "14px",
-                      padding: "18px",
-                      border: "1px solid #bae6fd",
+                      backgroundColor: "#faf5ff", borderRadius: "12px",
+                      padding: "16px", border: "1px solid #ddd6fe",
                       marginTop: accounts.length > 0 ? "12px" : "0"
                     }}>
-                      <h4 style={{ margin: "0 0 14px 0", fontSize: "15px", fontWeight: 800, color: "#0f172a" }}>
+                      <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: 700, color: "#111827" }}>
                         {editingAccountId ? "✏️ Edit API Key Account" : `➕ Add New ${meta.name} Key`}
                       </h4>
 
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "14px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#4b5563", marginBottom: "4px" }}>
                             Account Nickname
                           </label>
                           <input
                             type="text"
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            placeholder="e.g. Personal Free Key, Work Backup, etc."
+                            placeholder="e.g. Personal Free Key, Work Backup"
                             style={{
-                              width: "100%",
-                              padding: "10px 12px",
-                              borderRadius: "8px",
-                              border: "1px solid #cbd5e1",
-                              fontSize: "14px",
-                              boxSizing: "border-box",
-                              backgroundColor: "#ffffff"
+                              width: "100%", padding: "8px 12px", borderRadius: "8px",
+                              border: "1px solid #d1d5db", fontSize: "13px",
+                              boxSizing: "border-box", backgroundColor: "#ffffff"
                             }}
                           />
                         </div>
 
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                            <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569" }}>
+                            <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563" }}>
                               API Key
                             </label>
                             <a
                               href={meta.link}
                               target="_blank"
                               rel="noreferrer"
-                              style={{ fontSize: "11px", color: "#0284c7", fontWeight: 600, textDecoration: "none" }}
+                              style={{ fontSize: "11px", color: "#7c3aed", fontWeight: 700, textDecoration: "none" }}
                             >
                               Get key on {meta.portalName} ↗
                             </a>
@@ -1050,29 +780,20 @@ function Options() {
                               type={showKey ? "text" : "password"}
                               value={editKey}
                               onChange={(e) => setEditKey(e.target.value)}
-                              placeholder={`Paste your ${meta.name} API key here`}
+                              placeholder={`Paste your ${meta.name} API key`}
                               style={{
-                                flex: 1,
-                                padding: "10px 12px",
-                                borderRadius: "8px",
-                                border: "1px solid #cbd5e1",
-                                fontSize: "14px",
-                                boxSizing: "border-box",
-                                backgroundColor: "#ffffff"
+                                flex: 1, padding: "8px 12px", borderRadius: "8px",
+                                border: "1px solid #d1d5db", fontSize: "13px",
+                                boxSizing: "border-box", backgroundColor: "#ffffff"
                               }}
                             />
                             <button
                               type="button"
                               onClick={() => setShowKey(!showKey)}
                               style={{
-                                padding: "0 12px",
-                                borderRadius: "8px",
-                                border: "1px solid #cbd5e1",
-                                backgroundColor: "#ffffff",
-                                fontSize: "12px",
-                                fontWeight: 700,
-                                color: "#475569",
-                                cursor: "pointer"
+                                padding: "0 12px", borderRadius: "8px",
+                                border: "1px solid #d1d5db", backgroundColor: "#ffffff",
+                                fontSize: "11.5px", fontWeight: 600, color: "#4b5563", cursor: "pointer"
                               }}
                             >
                               {showKey ? "Hide" : "Show"}
@@ -1081,21 +802,16 @@ function Options() {
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#4b5563", marginBottom: "4px" }}>
                             AI Model
                           </label>
                           <select
                             value={editModel}
                             onChange={(e) => setEditModel(e.target.value)}
                             style={{
-                              width: "100%",
-                              padding: "10px 12px",
-                              borderRadius: "8px",
-                              border: "1px solid #cbd5e1",
-                              fontSize: "14px",
-                              boxSizing: "border-box",
-                              backgroundColor: "#ffffff",
-                              color: "#0f172a"
+                              width: "100%", padding: "8px 12px", borderRadius: "8px",
+                              border: "1px solid #d1d5db", fontSize: "13px",
+                              boxSizing: "border-box", backgroundColor: "#ffffff", color: "#111827"
                             }}
                           >
                             {MODELS[id].map(m => (
@@ -1106,30 +822,13 @@ function Options() {
                           </select>
                         </div>
 
-                        <div>
-                          <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 600, color: "#334155", cursor: "pointer" }}>
-                            <input
-                              type="checkbox"
-                              checked={editEnabled}
-                              onChange={(e) => setEditEnabled(e.target.checked)}
-                              style={{ width: "16px", height: "16px" }}
-                            />
-                            Enable this account immediately
-                          </label>
-                        </div>
-
-                        <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                        <div style={{ display: "flex", gap: "8px", marginTop: "2px" }}>
                           <button
                             onClick={saveAccount}
                             style={{
-                              backgroundColor: "#0284c7",
-                              color: "#ffffff",
-                              border: "none",
-                              padding: "9px 18px",
-                              borderRadius: "8px",
-                              fontSize: "13px",
-                              fontWeight: 700,
-                              cursor: "pointer"
+                              backgroundColor: "#7c3aed", color: "#ffffff", border: "none",
+                              padding: "8px 16px", borderRadius: "8px", fontSize: "12.5px",
+                              fontWeight: 700, cursor: "pointer"
                             }}
                           >
                             Save Account
@@ -1137,14 +836,9 @@ function Options() {
                           <button
                             onClick={cancelEditing}
                             style={{
-                              backgroundColor: "transparent",
-                              color: "#64748b",
-                              border: "1px solid #cbd5e1",
-                              padding: "9px 16px",
-                              borderRadius: "8px",
-                              fontSize: "13px",
-                              fontWeight: 600,
-                              cursor: "pointer"
+                              backgroundColor: "transparent", color: "#6b7280",
+                              border: "1px solid #d1d5db", padding: "8px 14px",
+                              borderRadius: "8px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer"
                             }}
                           >
                             Cancel
@@ -1153,11 +847,9 @@ function Options() {
                       </div>
                     </div>
                   )}
-
                 </div>
               )
             })}
-
           </div>
         )}
 
@@ -1165,19 +857,16 @@ function Options() {
         {activeTab === "failover" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "16px",
-              padding: "24px",
-              border: "1px solid #e2e8f0",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+              backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 22px",
+              border: "1px solid #e5e7eb"
             }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
-                    Automatic Failover & Backup Protection
+                  <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#111827" }}>
+                    Smart Failover Protection
                   </h2>
-                  <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#64748b" }}>
-                    Never get stuck waiting when an AI provider hits rate limits or experiences downtime.
+                  <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#6b7280" }}>
+                    Automatically switches to your backup AI key if your primary key hits rate limits (HTTP 429).
                   </p>
                 </div>
 
@@ -1186,36 +875,33 @@ function Options() {
                     type="checkbox"
                     checked={config.fallbackEnabled}
                     onChange={(e) => handleFallbackEnabledChange(e.target.checked)}
-                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                    style={{ width: "18px", height: "18px", accentColor: "#7c3aed", cursor: "pointer" }}
                   />
-                  <span style={{ fontSize: "14px", fontWeight: 700, color: config.fallbackEnabled ? "#0284c7" : "#64748b" }}>
+                  <span style={{ fontSize: "13.5px", fontWeight: 700, color: config.fallbackEnabled ? "#7c3aed" : "#6b7280" }}>
                     {config.fallbackEnabled ? "Enabled" : "Disabled"}
                   </span>
                 </label>
               </div>
 
-              {/* Visual Flow Representation */}
+              {/* Visual Flow */}
               <div style={{
-                backgroundColor: "#f8fafc",
-                borderRadius: "12px",
-                padding: "16px",
-                border: "1px solid #e2e8f0",
-                marginBottom: "20px"
+                backgroundColor: "#f9fafb", borderRadius: "12px", padding: "16px",
+                border: "1px solid #e5e7eb", marginBottom: "20px"
               }}>
-                <div style={{ fontSize: "13px", fontWeight: 700, color: "#334155", marginBottom: "8px" }}>
-                  How Smart Failover Works:
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#4b5563", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  How Smart Failover Works
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontSize: "13px" }}>
-                  <div style={{ padding: "6px 12px", backgroundColor: "#e0f2fe", color: "#0369a1", borderRadius: "8px", fontWeight: 700 }}>
+                  <div style={{ padding: "6px 12px", backgroundColor: "#f5f3ff", color: "#7c3aed", borderRadius: "8px", fontWeight: 700, border: "1px solid #ddd6fe" }}>
                     1. Primary ({config.activeProvider ? PROVIDERS[config.activeProvider].name : "Select Provider"})
                   </div>
-                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>➔ (If rate-limited) ➔</span>
-                  <div style={{ padding: "6px 12px", backgroundColor: "#fef3c7", color: "#92400e", borderRadius: "8px", fontWeight: 700 }}>
+                  <span style={{ color: "#9ca3af", fontWeight: 700 }}>➔ (If rate-limited) ➔</span>
+                  <div style={{ padding: "6px 12px", backgroundColor: "#fef3c7", color: "#92400e", borderRadius: "8px", fontWeight: 700, border: "1px solid #fde68a" }}>
                     2. Automatic Fallback Provider
                   </div>
-                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>➔</span>
-                  <div style={{ padding: "6px 12px", backgroundColor: "#dcfce7", color: "#15803d", borderRadius: "8px", fontWeight: 700 }}>
-                    3. Instant Reply Generated ✨
+                  <span style={{ color: "#9ca3af", fontWeight: 700 }}>➔</span>
+                  <div style={{ padding: "6px 12px", backgroundColor: "#ecfdf5", color: "#059669", borderRadius: "8px", fontWeight: 700, border: "1px solid #a7f3d0" }}>
+                    3. Instant Reply Generated
                   </div>
                 </div>
               </div>
@@ -1223,10 +909,10 @@ function Options() {
               {/* Fallback Selection */}
               {config.fallbackEnabled && (
                 <div>
-                  <h3 style={{ margin: "0 0 10px 0", fontSize: "14px", fontWeight: 700, color: "#334155" }}>
-                    Select Allowed Fallback Providers:
+                  <h3 style={{ margin: "0 0 10px 0", fontSize: "13.5px", fontWeight: 700, color: "#111827" }}>
+                    Allowed Fallback Providers:
                   </h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
                     {providerList.map(id => {
                       const meta = PROVIDER_METADATA[id]
                       const isPrimary = id === config.activeProvider
@@ -1237,11 +923,11 @@ function Options() {
                         <div
                           key={id}
                           style={{
-                            border: "1px solid #e2e8f0",
-                            borderRadius: "12px",
-                            padding: "12px 14px",
-                            backgroundColor: isPrimary ? "#f1f5f9" : isChecked ? "#f0f9ff" : "#ffffff",
-                            opacity: isPrimary || !hasAccounts ? 0.7 : 1
+                            border: `1.5px solid ${isChecked && !isPrimary ? "#7c3aed" : "#e5e7eb"}`,
+                            borderRadius: "12px", padding: "12px 14px",
+                            backgroundColor: isPrimary ? "#f9fafb" : isChecked ? "#f5f3ff" : "#ffffff",
+                            opacity: isPrimary || !hasAccounts ? 0.7 : 1,
+                            transition: "all 0.15s ease"
                           }}
                         >
                           <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: isPrimary || !hasAccounts ? "not-allowed" : "pointer" }}>
@@ -1250,13 +936,13 @@ function Options() {
                               checked={isChecked && !isPrimary}
                               disabled={isPrimary || !hasAccounts}
                               onChange={() => toggleFallbackProvider(id)}
-                              style={{ width: "16px", height: "16px" }}
+                              style={{ width: "16px", height: "16px", accentColor: "#7c3aed" }}
                             />
                             <div>
-                              <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>
-                                {meta.name} {isPrimary && "(Current Primary)"}
+                              <div style={{ fontSize: "13.5px", fontWeight: 700, color: "#111827" }}>
+                                {meta.name} {isPrimary && "(Primary)"}
                               </div>
-                              <div style={{ fontSize: "11px", color: hasAccounts ? "#64748b" : "#dc2626" }}>
+                              <div style={{ fontSize: "11px", color: hasAccounts ? "#6b7280" : "#dc2626", marginTop: "2px" }}>
                                 {hasAccounts ? `${config.providers[id]!.accounts.length} key connected` : "Requires API key"}
                               </div>
                             </div>
@@ -1275,23 +961,20 @@ function Options() {
         {activeTab === "preferences" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "16px",
-              padding: "24px",
-              border: "1px solid #e2e8f0",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+              backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 22px",
+              border: "1px solid #e5e7eb"
             }}>
-              <h2 style={{ margin: "0 0 16px 0", fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+              <h2 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: 700, color: "#111827" }}>
                 Reply Defaults & Custom Rules
               </h2>
 
               {/* Default Tone */}
-              <div style={{ marginBottom: "24px" }}>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "#374151", marginBottom: "4px" }}>
                   Default Reply Tone
                 </label>
-                <p style={{ margin: "0 0 12px 0", fontSize: "12px", color: "#64748b" }}>
-                  The default tone pre-selected whenever you open the Replyly modal.
+                <p style={{ margin: "0 0 10px 0", fontSize: "12.5px", color: "#6b7280" }}>
+                  Pre-selected tone when opening the Replyly modal.
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "8px" }}>
                   {TONES.map(t => {
@@ -1301,19 +984,16 @@ function Options() {
                         key={t.value}
                         onClick={() => handleDefaultToneChange(t.value)}
                         style={{
-                          padding: "10px 12px",
-                          borderRadius: "10px",
-                          border: isSelected ? "2px solid #0284c7" : "1px solid #e2e8f0",
-                          backgroundColor: isSelected ? "#f0f9ff" : "#ffffff",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          transition: "all 0.15s ease"
+                          padding: "10px 12px", borderRadius: "10px",
+                          border: isSelected ? "2px solid #7c3aed" : "1px solid #e5e7eb",
+                          backgroundColor: isSelected ? "#f5f3ff" : "#ffffff",
+                          textAlign: "left", cursor: "pointer", transition: "all 0.15s ease"
                         }}
                       >
-                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: 700, color: isSelected ? "#7c3aed" : "#111827", display: "flex", alignItems: "center", gap: "6px" }}>
                           <span>{t.emoji}</span> {t.label}
                         </div>
-                        <div style={{ fontSize: "11px", color: "#64748b", marginTop: "3px" }}>
+                        <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "2px" }}>
                           {t.desc}
                         </div>
                       </button>
@@ -1323,14 +1003,14 @@ function Options() {
               </div>
 
               {/* Number of Replies */}
-              <div style={{ marginBottom: "24px", borderTop: "1px solid #f1f5f9", paddingTop: "20px" }}>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+              <div style={{ marginBottom: "20px", borderTop: "1px solid #f3f4f6", paddingTop: "16px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "#374151", marginBottom: "4px" }}>
                   Replies Generated Per Post
                 </label>
-                <p style={{ margin: "0 0 12px 0", fontSize: "12px", color: "#64748b" }}>
+                <p style={{ margin: "0 0 10px 0", fontSize: "12.5px", color: "#6b7280" }}>
                   Choose how many reply variations you want generated at once.
                 </p>
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "8px" }}>
                   {[1, 2, 3, 5].map(num => {
                     const isSelected = defaultNumReplies === num
                     return (
@@ -1338,14 +1018,11 @@ function Options() {
                         key={num}
                         onClick={() => handleNumRepliesChange(num)}
                         style={{
-                          padding: "10px 20px",
-                          borderRadius: "10px",
-                          border: isSelected ? "2px solid #0284c7" : "1px solid #e2e8f0",
-                          backgroundColor: isSelected ? "#f0f9ff" : "#ffffff",
-                          fontSize: "14px",
-                          fontWeight: 700,
-                          color: isSelected ? "#0284c7" : "#475569",
-                          cursor: "pointer"
+                          padding: "8px 16px", borderRadius: "8px",
+                          border: isSelected ? "2px solid #7c3aed" : "1px solid #e5e7eb",
+                          backgroundColor: isSelected ? "#f5f3ff" : "#ffffff",
+                          fontSize: "13px", fontWeight: 700,
+                          color: isSelected ? "#7c3aed" : "#4b5563", cursor: "pointer"
                         }}
                       >
                         {num} {num === 1 ? "Reply" : "Replies"} {num === 3 && "(Recommended)"}
@@ -1355,34 +1032,25 @@ function Options() {
                 </div>
               </div>
 
-              {/* Global Custom Prompt Instructions */}
-              <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "20px" }}>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
-                  Persistent Persona & Guidelines (Optional)
+              {/* Global Custom Prompt */}
+              <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: "16px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "#374151", marginBottom: "4px" }}>
+                  Global Reply Instructions (Optional)
                 </label>
-                <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#64748b" }}>
-                  Rules added here are automatically appended to all your reply generations (e.g. &quot;Always sound like a senior software engineer&quot; or &quot;Never use buzzwords&quot;).
+                <p style={{ margin: "0 0 8px 0", fontSize: "12.5px", color: "#6b7280" }}>
+                  Appended automatically to every generation request (e.g. &quot;Never use hashtags, keep under 150 chars&quot;).
                 </p>
                 <textarea
                   value={globalCustomPrompt}
                   onChange={(e) => handleGlobalCustomPromptChange(e.target.value)}
-                  placeholder="e.g. Keep replies under 150 characters. Do not use exclamation marks. Speak like an AI engineer."
-                  rows={4}
+                  placeholder="e.g. Keep replies concise. Focus on engineering insights. Avoid marketing buzzwords."
                   style={{
-                    width: "100%",
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "13px",
-                    lineHeight: "1.5",
-                    boxSizing: "border-box",
-                    backgroundColor: "#ffffff",
-                    color: "#0f172a",
-                    fontFamily: "inherit"
+                    width: "100%", height: "76px", padding: "10px 12px", borderRadius: "8px",
+                    border: "1px solid #d1d5db", fontSize: "13px", color: "#111827",
+                    boxSizing: "border-box", resize: "none", outline: "none", backgroundColor: "#ffffff"
                   }}
                 />
               </div>
-
             </div>
           </div>
         )}
@@ -1393,16 +1061,13 @@ function Options() {
             
             {/* Guide Card 1: Google Gemini */}
             <div style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "16px",
-              padding: "20px",
-              border: "1px solid #e2e8f0",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+              backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 22px",
+              border: "1px solid #e5e7eb"
             }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "20px" }}>✨</span>
-                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
+                  <span style={{ fontSize: "20px" }}>💎</span>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#111827" }}>
                     How to get a Free Google Gemini API Key
                   </h3>
                 </div>
@@ -1411,39 +1076,31 @@ function Options() {
                   target="_blank"
                   rel="noreferrer"
                   style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "#0284c7",
-                    backgroundColor: "#f0f9ff",
-                    padding: "6px 12px",
-                    borderRadius: "8px",
-                    textDecoration: "none",
-                    border: "1px solid #bae6fd"
+                    fontSize: "12px", fontWeight: 700, color: "#7c3aed",
+                    backgroundColor: "#f5f3ff", padding: "5px 12px", borderRadius: "8px",
+                    textDecoration: "none", border: "1px solid #ddd6fe"
                   }}
                 >
                   Open AI Studio ↗
                 </a>
               </div>
-              <ol style={{ margin: "0", paddingLeft: "20px", fontSize: "13px", color: "#475569", lineHeight: "1.8" }}>
-                <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: "#0284c7", fontWeight: 600 }}>Google AI Studio (aistudio.google.com)</a>.</li>
-                <li>Sign in with your standard Google account.</li>
-                <li>Click on the blue <strong>&quot;Create API Key&quot;</strong> button.</li>
-                <li>Copy the key, switch to the <strong>AI Providers & Keys</strong> tab here, and paste it into Gemini.</li>
+              <ol style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", color: "#4b5563", lineHeight: "1.8" }}>
+                <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 700 }}>Google AI Studio (aistudio.google.com)</a>.</li>
+                <li>Sign in with your Google account.</li>
+                <li>Click <strong>&quot;Create API Key&quot;</strong>.</li>
+                <li>Copy your key and paste it into the <strong>AI Providers & Keys</strong> tab.</li>
               </ol>
             </div>
 
             {/* Guide Card 2: Groq */}
             <div style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "16px",
-              padding: "20px",
-              border: "1px solid #e2e8f0",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+              backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 22px",
+              border: "1px solid #e5e7eb"
             }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{ fontSize: "20px" }}>⚡</span>
-                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#111827" }}>
                     How to get a Free GroqCloud API Key
                   </h3>
                 </div>
@@ -1452,21 +1109,16 @@ function Options() {
                   target="_blank"
                   rel="noreferrer"
                   style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "#0284c7",
-                    backgroundColor: "#f0f9ff",
-                    padding: "6px 12px",
-                    borderRadius: "8px",
-                    textDecoration: "none",
-                    border: "1px solid #bae6fd"
+                    fontSize: "12px", fontWeight: 700, color: "#7c3aed",
+                    backgroundColor: "#f5f3ff", padding: "5px 12px", borderRadius: "8px",
+                    textDecoration: "none", border: "1px solid #ddd6fe"
                   }}
                 >
                   Open Groq Console ↗
                 </a>
               </div>
-              <ol style={{ margin: "0", paddingLeft: "20px", fontSize: "13px", color: "#475569", lineHeight: "1.8" }}>
-                <li>Visit the <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: "#0284c7", fontWeight: 600 }}>Groq Console</a>.</li>
+              <ol style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", color: "#4b5563", lineHeight: "1.8" }}>
+                <li>Visit the <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 700 }}>Groq Console</a>.</li>
                 <li>Create a free account or sign in with GitHub/Google.</li>
                 <li>Click <strong>&quot;Create API Key&quot;</strong>.</li>
                 <li>Paste the key into Replyly for instant ultra-fast responses!</li>
@@ -1475,20 +1127,17 @@ function Options() {
 
             {/* Privacy & Security FAQ Card */}
             <div style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "16px",
-              padding: "20px",
-              border: "1px solid #e2e8f0",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+              backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 22px",
+              border: "1px solid #e5e7eb"
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                 <span style={{ fontSize: "20px" }}>🔒</span>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
-                  Privacy & Bring Your Own Key (BYOK) Security
+                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#111827" }}>
+                  Privacy & Client-Side BYOK Security
                 </h3>
               </div>
-              <div style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6" }}>
-                <p style={{ margin: "0 0 10px 0" }}>
+              <div style={{ fontSize: "13px", color: "#4b5563", lineHeight: "1.6" }}>
+                <p style={{ margin: "0 0 8px 0" }}>
                   <strong>Are my API keys sent to any third-party server?</strong><br />
                   No! Replyly uses a 100% client-side BYOK architecture. Your keys are stored strictly in your browser&apos;s local storage and only communicate directly with official provider endpoints (Google, Groq, OpenRouter).
                 </p>
@@ -1505,44 +1154,29 @@ function Options() {
         {/* Delete Confirmation Modal */}
         {deleteConfirmId && (
           <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10000,
-            padding: "16px"
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: "rgba(17, 24, 39, 0.4)", display: "flex",
+            alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "16px",
+            backdropFilter: "blur(4px)"
           }}>
             <div style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "16px",
-              padding: "24px",
-              maxWidth: "400px",
-              width: "100%",
+              backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 24px",
+              maxWidth: "400px", width: "100%",
               boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
             }}>
-              <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+              <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: 700, color: "#111827" }}>
                 Delete Account?
               </h3>
-              <p style={{ margin: "0 0 20px 0", fontSize: "13px", color: "#64748b", lineHeight: "1.5" }}>
+              <p style={{ margin: "0 0 16px 0", fontSize: "13px", color: "#6b7280", lineHeight: "1.5" }}>
                 Are you sure you want to remove this API key account? You can always add it back later.
               </p>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                 <button
                   onClick={() => setDeleteConfirmId(null)}
                   style={{
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                    backgroundColor: "#ffffff",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    color: "#475569",
-                    cursor: "pointer"
+                    padding: "7px 14px", borderRadius: "8px",
+                    border: "1px solid #d1d5db", backgroundColor: "#ffffff",
+                    fontSize: "12.5px", fontWeight: 600, color: "#4b5563", cursor: "pointer"
                   }}
                 >
                   Cancel
@@ -1550,14 +1184,9 @@ function Options() {
                 <button
                   onClick={() => removeAccount(deleteConfirmId.providerId, deleteConfirmId.accountId)}
                   style={{
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    border: "none",
-                    backgroundColor: "#dc2626",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "#ffffff",
-                    cursor: "pointer"
+                    padding: "7px 14px", borderRadius: "8px",
+                    border: "none", backgroundColor: "#dc2626",
+                    fontSize: "12.5px", fontWeight: 700, color: "#ffffff", cursor: "pointer"
                   }}
                 >
                   Delete
@@ -1570,28 +1199,19 @@ function Options() {
         {/* Global Toast Notification */}
         {statusMsg && (
           <div style={{
-            position: "fixed",
-            bottom: "32px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            padding: "12px 20px",
-            borderRadius: "9999px",
-            fontSize: "14px",
-            fontWeight: 700,
-            backgroundColor: statusType === "error" ? "#dc2626" : statusType === "success" ? "#16a34a" : "#0284c7",
-            color: "#ffffff",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.18)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            animation: "fadeIn 0.2s ease-in-out"
+            position: "fixed", bottom: "28px", left: "50%",
+            transform: "translateX(-50%)", padding: "10px 20px",
+            borderRadius: "9999px", fontSize: "13.5px", fontWeight: 700,
+            backgroundColor: statusType === "error" ? "#dc2626" : statusType === "success" ? "#16a34a" : "#7c3aed",
+            color: "#ffffff", boxShadow: "0 10px 25px rgba(0,0,0,0.18)",
+            zIndex: 9999, display: "flex", alignItems: "center", gap: "8px"
           }}>
             <span>{statusType === "error" ? "✕" : statusType === "success" ? "✓" : "ℹ"}</span>
             <span>{statusMsg}</span>
           </div>
         )}
 
+        </div>
       </div>
     </div>
   )

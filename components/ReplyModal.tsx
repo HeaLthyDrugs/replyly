@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react"
-import { AIManager, PROVIDERS } from "../lib/ai/manager"
+import { AIManager } from "../lib/ai/manager"
 import { MissingApiKeyError } from "../lib/ai/types"
 import { openReplyComposer } from "../lib/x-dom"
-import { getGrokContext, generateRepliesWithGrok, regenerateSingleReplyWithGrok } from "../lib/grok-dom"
+import { getGrokContext } from "../lib/grok-dom"
+import { RlyLogoIcon } from "./Logo"
 
 export interface ModalData {
   author: string
@@ -46,6 +47,15 @@ export const TONE_OPTIONS: ToneOption[] = [
   { value: "Contrarian", label: "Contrarian", emoji: "🤔", description: "Respectful challenge to assumptions" }
 ]
 
+const GENERATION_STEPS = [
+  "Analyzing post context & tone...",
+  "Crafting thoughtful perspectives...",
+  "Applying tone nuances...",
+  "Polishing reply variations...",
+  "Finalizing responses..."
+]
+
+// Module-level cache to persist generated replies for specific posts across modal opens
 const postCache = new Map<string, CachedPostData>()
 
 function getCacheKey(author: string, postText: string): string {
@@ -61,6 +71,7 @@ export const ReplyModal: React.FC = () => {
   const [customInstruction, setCustomInstruction] = useState<string>("")
   
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generationStep, setGenerationStep] = useState(0)
   const [replies, setReplies] = useState<ReplyState[] | null>(null)
   const [generationInfo, setGenerationInfo] = useState<{ provider: string; usedFallback: boolean } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -69,14 +80,27 @@ export const ReplyModal: React.FC = () => {
   const [postingId, setPostingId] = useState<string | null>(null)
   
   const [isMissingKey, setIsMissingKey] = useState(false)
-  const [hasApiConfigured, setHasApiConfigured] = useState(false)
-  const [activeProviderName, setActiveProviderName] = useState<string>("")
 
   // Grok context state
   const [grokContext, setGrokContext] = useState<string | null>(null)
   const [isGrokLoading, setIsGrokLoading] = useState(false)
   const [grokError, setGrokError] = useState<string | null>(null)
   const [isGrokExpanded, setIsGrokExpanded] = useState(false)
+
+  // Cycle engaging progress steps during active generation
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    if (isGenerating) {
+      interval = setInterval(() => {
+        setGenerationStep((prev) => (prev + 1) % GENERATION_STEPS.length)
+      }, 1200)
+    } else {
+      setGenerationStep(0)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [isGenerating])
 
   useEffect(() => {
     const handleOpenModal = (e: Event) => {
@@ -86,18 +110,6 @@ export const ReplyModal: React.FC = () => {
       setIsOpen(true)
       setIsToneModalOpen(false)
       
-      // Check whether user has configured API keys
-      AIManager.getConfig().then(cfg => {
-        const activePid = cfg.activeProvider
-        const hasKeys = activePid && activePid !== 'grok' 
-          ? (cfg.providers[activePid]?.accounts?.some(a => a.enabled && a.status !== 'invalid') ?? false) 
-          : false
-        setHasApiConfigured(Boolean(hasKeys))
-        if (activePid && (PROVIDERS as any)[activePid]) {
-          setActiveProviderName((PROVIDERS as any)[activePid].name)
-        }
-      })
-
       const key = getCacheKey(newPostData.author, newPostData.postText)
       const cached = postCache.get(key)
       if (cached) {
@@ -113,6 +125,7 @@ export const ReplyModal: React.FC = () => {
         setGrokContext(null)
         setIsGrokExpanded(false)
 
+        // Load saved preferences for new posts
         chrome.storage.local.get(["replyly_defaultTone", "replyly_globalCustomPrompt"], (res) => {
           if (res.replyly_defaultTone) setSelectedTone(res.replyly_defaultTone)
           if (res.replyly_globalCustomPrompt) setCustomInstruction(res.replyly_globalCustomPrompt)
@@ -120,6 +133,7 @@ export const ReplyModal: React.FC = () => {
       }
       
       setIsGenerating(false)
+      setGenerationStep(0)
       setError(null)
       setCopiedId(null)
       setPostingId(null)
@@ -153,64 +167,11 @@ export const ReplyModal: React.FC = () => {
     setIsToneModalOpen(false)
   }
 
-  // Generate replies using X's built-in Grok
-  const handleGenerateWithGrok = async () => {
-    if (!data.article) return
-    
-    setIsGenerating(true)
-    setError(null)
-    setReplies(null)
-    setGenerationInfo(null)
-    setIsMissingKey(false)
-
-    try {
-      const rawReplies = await generateRepliesWithGrok(
-        data.article,
-        selectedTone,
-        customInstruction,
-        3,
-        (liveReplies) => {
-          const liveStates: ReplyState[] = liveReplies.map((text, i) => ({
-            id: `grok-${Date.now()}-${i}`,
-            text,
-            draftText: text,
-            isEditing: false,
-            isRegenerating: false
-          }))
-          setReplies(liveStates)
-        }
-      )
-
-      const newReplies: ReplyState[] = rawReplies.map((text, i) => ({
-        id: `grok-${Date.now()}-${i}`,
-        text,
-        draftText: text,
-        isEditing: false,
-        isRegenerating: false
-      }))
-
-      setReplies(newReplies)
-      setGenerationInfo({ provider: "Grok (X built-in)", usedFallback: false })
-    } catch (err: any) {
-      setError(err.message || "Failed to generate replies with Grok. Please try again.")
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  // Generate replies via configured API (or Grok fallback)
   const handleGenerate = async () => {
-    if (!hasApiConfigured) {
-      await handleGenerateWithGrok()
-      return
-    }
-
-    if (!data.postText && !grokContext) {
-      await handleGenerateWithGrok()
-      return
-    }
+    if (!data.postText && !grokContext) return
     
     setIsGenerating(true)
+    setGenerationStep(0)
     setError(null)
     setReplies(null)
     setGenerationInfo(null)
@@ -257,20 +218,14 @@ export const ReplyModal: React.FC = () => {
     ))
 
     try {
-      let newText = ""
-
-      if (generationInfo?.provider?.toLowerCase().includes("grok") && data.article) {
-        newText = await regenerateSingleReplyWithGrok(data.article, selectedTone, customInstruction)
-      } else {
-        const regenerated = await AIManager.generateReplies(
-          data.postText,
-          selectedTone,
-          customInstruction,
-          1,
-          grokContext || ""
-        )
-        newText = regenerated.replies[0]
-      }
+      const regeneratedReplies = await AIManager.generateReplies(
+        data.postText,
+        selectedTone,
+        customInstruction,
+        1,
+        grokContext || ""
+      )
+      const newText = regeneratedReplies.replies[0]
       
       setReplies(prev => prev!.map(r => 
         r.id === id ? { ...r, text: newText, draftText: newText, isRegenerating: false, isEditing: false } : r
@@ -336,7 +291,6 @@ export const ReplyModal: React.FC = () => {
     if (!data?.article) return
     setIsGrokLoading(true)
     setGrokError(null)
-    setGrokContext(null)
 
     try {
       const context = await getGrokContext(data.article, {
@@ -368,66 +322,111 @@ export const ReplyModal: React.FC = () => {
     <div
       style={{
         position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.6)", zIndex: 2147483647,
+        backgroundColor: "rgba(15, 23, 42, 0.65)", zIndex: 2147483647,
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        backdropFilter: "blur(4px)"
       }}
       onClick={handleClose}
     >
+      {/* Styles for vibrant animations */}
+      <style>{`
+        @keyframes replyly-spin { to { transform: rotate(360deg); } }
+        @keyframes rly-gradient-flow {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes rly-shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes rly-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
+          40% { transform: translateY(-4px); opacity: 1; }
+        }
+        @keyframes rly-pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.4); opacity: 0.5; }
+        }
+        @keyframes rly-fade-in {
+          from { opacity: 0; transform: translateY(2px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <div
         style={{
-          width: "550px", maxWidth: "90%", maxHeight: "90vh",
-          backgroundColor: "#15202b", borderRadius: "16px", border: "1px solid #38444d",
-          boxShadow: "0 8px 28px rgba(0, 0, 0, 0.28)", color: "#fff",
-          display: "flex", flexDirection: "column", overflow: "hidden",
+          width: "560px", maxWidth: "92%", maxHeight: "90vh",
+          backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e2e8f0",
+          boxShadow: "0 20px 45px -10px rgba(15, 23, 42, 0.25), 0 0 1px rgba(0, 0, 0, 0.1)",
+          color: "#0f172a", display: "flex", flexDirection: "column", overflow: "hidden",
           position: "relative"
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderBottom: "1px solid #38444d" }}>
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "16px 20px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#ffffff"
+        }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="#1d9bf0">
-              <path d="M12 2L9.5 9.5L2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"></path>
-            </svg>
-            <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700 }}>Replyly</h2>
+            <RlyLogoIcon size={26} />
+            <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>Replyly</h2>
+            <span style={{
+              fontSize: "10px", fontWeight: 800,
+              backgroundColor: "#f5f3ff", color: "#7c3aed",
+              padding: "2px 6px", borderRadius: "5px", border: "1px solid #ddd6fe"
+            }}>
+              RLY
+            </span>
           </div>
           <button
             onClick={handleClose}
             style={{
-              background: "none", border: "none", color: "#8899a6", cursor: "pointer",
-              padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%"
+              background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", cursor: "pointer",
+              padding: "6px", display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: "8px", transition: "all 0.15s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#f1f5f9"
+              e.currentTarget.style.color = "#0f172a"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#f8fafc"
+              e.currentTarget.style.color = "#64748b"
             }}
           >
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
               <path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 105.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"></path>
             </svg>
           </button>
         </div>
 
         {/* Body Content */}
-        <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
+        <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
           
           {/* Post Reference */}
           <div>
-            <div style={{ fontSize: "13px", color: "#8899a6", marginBottom: "6px" }}>
-              Post you're replying to:
+            <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Post you're replying to
             </div>
             <div style={{ 
-              fontSize: "14px", lineHeight: "1.5", maxHeight: "90px", overflowY: "auto",
-              padding: "10px 12px", backgroundColor: "#192734", borderRadius: "8px", border: "1px solid #38444d"
+              fontSize: "13.5px", lineHeight: "1.5", maxHeight: "90px", overflowY: "auto",
+              padding: "10px 14px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0"
             }}>
-              <strong style={{ color: "#fff", display: "block", marginBottom: "2px" }}>{data.author}</strong>
-              <span style={{ color: "#e1e8ed" }}>{data.postText || "Media post (no text)"}</span>
+              <strong style={{ color: "#0f172a", display: "block", marginBottom: "2px", fontWeight: 700 }}>{data.author}</strong>
+              <span style={{ color: "#334155" }}>{data.postText || "Media post (no text)"}</span>
             </div>
           </div>
 
-          {/* Grok Context Section - shown for media posts */}
+          {/* Grok Context Section - only shown for posts with media */}
           {data.hasMedia && (
             <div>
+              {/* Media detected indicator */}
               <div style={{ 
                 display: "flex", alignItems: "center", gap: "6px", 
-                fontSize: "12px", color: "#8899a6", marginBottom: "8px"
+                fontSize: "12px", color: "#64748b", marginBottom: "8px", fontWeight: 600
               }}>
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                   <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"></path>
@@ -435,67 +434,69 @@ export const ReplyModal: React.FC = () => {
                 This post contains media
               </div>
 
+              {/* Grok context states */}
               {!grokContext && !isGrokLoading && (
                 <div>
                   <button
                     onClick={handleGrokContext}
                     disabled={isGrokLoading}
                     style={{
-                      width: "100%", padding: "10px 16px", borderRadius: "8px",
-                      border: "1px dashed #38444d", backgroundColor: "transparent",
-                      color: "#1d9bf0", cursor: "pointer", fontSize: "13px", fontWeight: 600,
+                      width: "100%", padding: "10px 16px", borderRadius: "10px",
+                      border: "1.5px dashed #c4b5fd", backgroundColor: "#faf5ff",
+                      color: "#7c3aed", cursor: "pointer", fontSize: "13px", fontWeight: 700,
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                      transition: "all 0.2s"
+                      transition: "all 0.15s ease"
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#1d9bf0"
-                      e.currentTarget.style.backgroundColor = "rgba(29, 155, 240, 0.05)"
+                      e.currentTarget.style.borderColor = "#7c3aed"
+                      e.currentTarget.style.backgroundColor = "#f5f3ff"
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#38444d"
-                      e.currentTarget.style.backgroundColor = "transparent"
+                      e.currentTarget.style.borderColor = "#c4b5fd"
+                      e.currentTarget.style.backgroundColor = "#faf5ff"
                     }}
                   >
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                      <path d="M12 2L9.5 9.5L2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"></path>
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                     </svg>
                     Get real-time context from Grok
                   </button>
-                  <div style={{ fontSize: "11px", color: "#536471", marginTop: "4px", textAlign: "center" }}>
+                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px", textAlign: "center" }}>
                     Uses X's built-in Grok to analyze images/videos in this post
                   </div>
                 </div>
               )}
 
+              {/* Loading state */}
               {isGrokLoading && (
                 <div style={{
-                  padding: "12px", backgroundColor: "#192734", borderRadius: "8px",
-                  border: "1px solid #38444d", display: "flex", alignItems: "center",
+                  padding: "12px", backgroundColor: "#f8fafc", borderRadius: "10px",
+                  border: "1px solid #e2e8f0", display: "flex", alignItems: "center",
                   justifyContent: "center", gap: "10px"
                 }}>
                   <div style={{
-                    width: "14px", height: "14px", border: "2px solid #38444d",
-                    borderTopColor: "#1d9bf0", borderRadius: "50%",
+                    width: "14px", height: "14px", border: "2px solid #e2e8f0",
+                    borderTopColor: "#7c3aed", borderRadius: "50%",
                     animation: "replyly-spin 1s linear infinite"
                   }} />
-                  <span style={{ color: "#8899a6", fontSize: "13px" }}>Analyzing with Grok in real-time...</span>
-                  <style>{`@keyframes replyly-spin { to { transform: rotate(360deg); } }`}</style>
+                  <span style={{ color: "#64748b", fontSize: "13px", fontWeight: 600 }}>Analyzing with Grok in real-time...</span>
                 </div>
               )}
 
+              {/* Grok error */}
               {grokError && (
                 <div style={{
-                  padding: "8px 12px", backgroundColor: "rgba(244, 33, 46, 0.08)", 
-                  borderRadius: "8px", border: "1px solid rgba(244, 33, 46, 0.2)",
-                  fontSize: "12px", color: "#f4212e", display: "flex", 
+                  padding: "8px 12px", backgroundColor: "#fef2f2", 
+                  borderRadius: "8px", border: "1px solid #fecaca",
+                  fontSize: "12px", color: "#b91c1c", display: "flex", 
                   justifyContent: "space-between", alignItems: "center"
                 }}>
                   <span>{grokError}</span>
                   <button
                     onClick={handleGrokContext}
                     style={{
-                      background: "transparent", border: "none", color: "#1d9bf0",
-                      cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: "2px 6px",
+                      background: "transparent", border: "none", color: "#7c3aed",
+                      cursor: "pointer", fontSize: "12px", fontWeight: 700, padding: "2px 6px",
                       whiteSpace: "nowrap"
                     }}
                   >
@@ -504,10 +505,11 @@ export const ReplyModal: React.FC = () => {
                 </div>
               )}
 
+              {/* Grok context preview with Live Refresh */}
               {grokContext && (
                 <div style={{
-                  borderRadius: "8px", border: "1px solid #1d9bf0",
-                  backgroundColor: "rgba(29, 155, 240, 0.05)", overflow: "hidden"
+                  borderRadius: "10px", border: "1px solid #ddd6fe",
+                  backgroundColor: "#f5f3ff", overflow: "hidden"
                 }}>
                   <div
                     style={{
@@ -520,22 +522,23 @@ export const ReplyModal: React.FC = () => {
                       onClick={() => setIsGrokExpanded(!isGrokExpanded)}
                       style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", flex: 1 }}
                     >
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="#00ba7c">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="#059669">
                         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
                       </svg>
-                      <span style={{ fontSize: "13px", fontWeight: 600, color: "#00ba7c" }}>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#059669" }}>
                         Grok context active
                       </span>
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      {/* Real-time Refresh Button */}
                       <button
                         type="button"
                         onClick={handleGrokContext}
                         disabled={isGrokLoading}
                         style={{
-                          background: "transparent", border: "none", color: "#1d9bf0",
-                          fontSize: "12px", fontWeight: 600, cursor: isGrokLoading ? "not-allowed" : "pointer",
+                          background: "transparent", border: "none", color: "#7c3aed",
+                          fontSize: "12px", fontWeight: 700, cursor: isGrokLoading ? "not-allowed" : "pointer",
                           display: "flex", alignItems: "center", gap: "3px", padding: 0
                         }}
                         title="Fetch fresh real-time analysis from Grok"
@@ -545,17 +548,17 @@ export const ReplyModal: React.FC = () => {
                         </svg>
                         Refresh
                       </button>
-                      <span style={{ color: "#38444d" }}>|</span>
+                      <span style={{ color: "#cbd5e1" }}>|</span>
                       <button
                         type="button"
                         onClick={handleClearGrokContext}
-                        style={{ background: "transparent", border: "none", fontSize: "12px", color: "#8899a6", cursor: "pointer", padding: 0 }}
+                        style={{ background: "transparent", border: "none", fontSize: "12px", color: "#64748b", cursor: "pointer", padding: 0, fontWeight: 600 }}
                       >
                         Clear
                       </button>
                       <svg 
                         onClick={() => setIsGrokExpanded(!isGrokExpanded)}
-                        viewBox="0 0 24 24" width="14" height="14" fill="#8899a6"
+                        viewBox="0 0 24 24" width="14" height="14" fill="#64748b"
                         style={{ transform: isGrokExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", cursor: "pointer" }}
                       >
                         <path d="M7 10l5 5 5-5z"></path>
@@ -566,8 +569,8 @@ export const ReplyModal: React.FC = () => {
                   {isGrokExpanded && (
                     <div style={{
                       padding: "0 12px 10px", fontSize: "12px", lineHeight: "1.5",
-                      color: "#e1e8ed", maxHeight: "120px", overflowY: "auto",
-                      borderTop: "1px solid rgba(29, 155, 240, 0.15)"
+                      color: "#334155", maxHeight: "120px", overflowY: "auto",
+                      borderTop: "1px solid #ddd6fe"
                     }}>
                       <div style={{ paddingTop: "8px", whiteSpace: "pre-wrap" }}>{grokContext}</div>
                     </div>
@@ -579,37 +582,42 @@ export const ReplyModal: React.FC = () => {
 
           {/* Tone Selector Button */}
           <div>
-            <div style={{ fontSize: "13px", fontWeight: 700, marginBottom: "6px", color: "#fff" }}>
+            <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Tone
             </div>
 
             <div
               role="button"
               tabIndex={0}
-              onClick={() => setIsToneModalOpen(true)}
+              onClick={() => !isGenerating && setIsToneModalOpen(true)}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "10px 14px", borderRadius: "10px",
-                backgroundColor: "#192734", border: "1px solid #38444d",
-                cursor: "pointer", transition: "all 0.2s"
+                backgroundColor: "#f8fafc", border: "1px solid #e2e8f0",
+                cursor: isGenerating ? "not-allowed" : "pointer", transition: "all 0.15s ease",
+                opacity: isGenerating ? 0.75 : 1
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#1d9bf0"
-                e.currentTarget.style.backgroundColor = "rgba(29, 155, 240, 0.05)"
+                if (!isGenerating) {
+                  e.currentTarget.style.borderColor = "#7c3aed"
+                  e.currentTarget.style.backgroundColor = "#f5f3ff"
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#38444d"
-                e.currentTarget.style.backgroundColor = "#192734"
+                if (!isGenerating) {
+                  e.currentTarget.style.borderColor = "#e2e8f0"
+                  e.currentTarget.style.backgroundColor = "#f8fafc"
+                }
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <span style={{ fontSize: "18px" }}>{activeTone.emoji}</span>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <span style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>{activeTone.label}</span>
-                  <span style={{ fontSize: "11px", color: "#8899a6" }}>{activeTone.description}</span>
+                  <span style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>{activeTone.label}</span>
+                  <span style={{ fontSize: "11px", color: "#64748b" }}>{activeTone.description}</span>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#1d9bf0", fontSize: "12px", fontWeight: 600 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#7c3aed", fontSize: "12px", fontWeight: 700 }}>
                 <span>Change</span>
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                   <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
@@ -620,31 +628,125 @@ export const ReplyModal: React.FC = () => {
 
           {/* Custom Instruction */}
           <div>
-            <div style={{ fontSize: "13px", fontWeight: 700, marginBottom: "6px", color: "#fff" }}>
-              Custom Instruction <span style={{ color: "#8899a6", fontWeight: 400 }}>(Optional)</span>
+            <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Custom Instruction <span style={{ color: "#94a3b8", fontWeight: 500, textTransform: "none" }}>(Optional)</span>
             </div>
             <input
               type="text"
               value={customInstruction}
+              disabled={isGenerating}
               onChange={(e) => setCustomInstruction(e.target.value)}
               placeholder="e.g. Mention MCP security, ask about their stack..."
               style={{
-                width: "100%", padding: "10px 12px", borderRadius: "8px",
-                border: "1px solid #38444d", backgroundColor: "#192734", color: "#fff",
-                fontSize: "13px", boxSizing: "border-box", outline: "none"
+                width: "100%", padding: "10px 14px", borderRadius: "10px",
+                border: "1px solid #cbd5e1", backgroundColor: isGenerating ? "#f8fafc" : "#ffffff", color: "#0f172a",
+                fontSize: "13px", boxSizing: "border-box", outline: "none",
+                transition: "border-color 0.15s ease",
+                opacity: isGenerating ? 0.75 : 1
               }}
+              onFocus={(e) => e.currentTarget.style.borderColor = "#7c3aed"}
+              onBlur={(e) => e.currentTarget.style.borderColor = "#cbd5e1"}
             />
           </div>
 
-          {/* Replies */}
-          {replies && (
+          {/* Active Generation Skeleton & Live Progress State */}
+          {isGenerating && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", animation: "rly-fade-in 0.25s ease" }}>
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "10px 14px", borderRadius: "10px",
+                backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{
+                    width: "8px", height: "8px", borderRadius: "50%",
+                    backgroundColor: "#7c3aed",
+                    boxShadow: "0 0 8px #7c3aed",
+                    animation: "rly-pulse 1.4s infinite"
+                  }} />
+                  <span
+                    key={generationStep}
+                    style={{
+                      fontSize: "13px", fontWeight: 700, color: "#6d28d9",
+                      animation: "rly-fade-in 0.3s ease"
+                    }}
+                  >
+                    {GENERATION_STEPS[generationStep]}
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: "11px", fontWeight: 800,
+                  backgroundColor: "#ffffff", color: "#7c3aed",
+                  padding: "2px 8px", borderRadius: "9999px",
+                  border: "1px solid #ddd6fe"
+                }}>
+                  {activeTone.emoji} {activeTone.label}
+                </span>
+              </div>
+
+              {/* Shimmer Skeleton Reply Cards */}
+              {[0, 1, 2].map((idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: "16px",
+                    backgroundColor: "#ffffff",
+                    borderRadius: "12px",
+                    border: "1px solid #e2e8f0",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    position: "relative",
+                    overflow: "hidden"
+                  }}
+                >
+                  <div style={{
+                    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                    background: "linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.08) 50%, transparent 100%)",
+                    backgroundSize: "200% 100%",
+                    animation: `rly-shimmer 1.6s infinite ease-in-out ${idx * 0.2}s`
+                  }} />
+
+                  <div style={{
+                    height: "13px",
+                    width: idx === 0 ? "88%" : idx === 1 ? "94%" : "78%",
+                    backgroundColor: "#f1f5f9",
+                    borderRadius: "6px"
+                  }} />
+                  <div style={{
+                    height: "13px",
+                    width: idx === 0 ? "62%" : idx === 1 ? "72%" : "48%",
+                    backgroundColor: "#f1f5f9",
+                    borderRadius: "6px"
+                  }} />
+
+                  <div style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    marginTop: "6px", paddingTop: "4px"
+                  }}>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <div style={{ height: "22px", width: "50px", backgroundColor: "#f8fafc", borderRadius: "9999px", border: "1px solid #f1f5f9" }} />
+                      <div style={{ height: "22px", width: "80px", backgroundColor: "#f8fafc", borderRadius: "9999px", border: "1px solid #f1f5f9" }} />
+                    </div>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <div style={{ height: "24px", width: "60px", backgroundColor: "#f8fafc", borderRadius: "9999px", border: "1px solid #f1f5f9" }} />
+                      <div style={{ height: "24px", width: "80px", backgroundColor: "#f5f3ff", borderRadius: "9999px", border: "1px solid #ddd6fe" }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Generated Replies */}
+          {replies && !isGenerating && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" }}>
-                <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>
+                <div style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
                   Generated Replies
                 </div>
                 {generationInfo && (
-                  <div style={{ fontSize: "12px", color: generationInfo.usedFallback ? "#f91880" : "#8899a6", fontWeight: 600 }}>
+                  <div style={{ fontSize: "11.5px", color: generationInfo.usedFallback ? "#dc2626" : "#7c3aed", fontWeight: 700 }}>
                     {generationInfo.usedFallback ? `Generated with ${generationInfo.provider} · fallback` : `Generated with ${generationInfo.provider}`}
                   </div>
                 )}
@@ -655,13 +757,18 @@ export const ReplyModal: React.FC = () => {
                   
                   return (
                     <div key={reply.id} style={{
-                      padding: "14px", backgroundColor: "#192734", borderRadius: "12px",
-                      border: "1px solid #38444d", position: "relative"
+                      padding: "14px 16px", backgroundColor: "#ffffff", borderRadius: "12px",
+                      border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "relative"
                     }}>
                       
                       {reply.isRegenerating ? (
-                        <div style={{ padding: "12px 0", textAlign: "center", color: "#8899a6", fontSize: "13px" }}>
-                          Regenerating...
+                        <div style={{ padding: "16px 0", textAlign: "center", color: "#7c3aed", fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                          <div style={{
+                            width: "14px", height: "14px", border: "2px solid #ddd6fe",
+                            borderTopColor: "#7c3aed", borderRadius: "50%",
+                            animation: "replyly-spin 1s linear infinite"
+                          }} />
+                          Regenerating with new perspective...
                         </div>
                       ) : reply.isEditing ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -669,22 +776,22 @@ export const ReplyModal: React.FC = () => {
                             value={reply.draftText}
                             onChange={(e) => handleDraftChange(reply.id, e.target.value)}
                             style={{
-                              width: "100%", height: "70px", padding: "10px", borderRadius: "8px",
-                              border: "1px solid #1d9bf0", backgroundColor: "#15202b", color: "#e1e8ed",
+                              width: "100%", height: "76px", padding: "10px 12px", borderRadius: "8px",
+                              border: "1.5px solid #7c3aed", backgroundColor: "#f8fafc", color: "#0f172a",
                               fontSize: "14px", lineHeight: "1.5", resize: "none", boxSizing: "border-box", outline: "none",
                               fontFamily: "inherit"
                             }}
                           />
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", color: reply.draftText.length === 280 ? "#f4212e" : "#8899a6" }}>
+                            <span style={{ fontSize: "12px", color: reply.draftText.length === 280 ? "#dc2626" : "#64748b", fontWeight: 600 }}>
                               {reply.draftText.length} / 280
                             </span>
                             <div style={{ display: "flex", gap: "8px" }}>
                               <button
                                 onClick={() => toggleEdit(reply.id, false)}
                                 style={{
-                                  background: "transparent", border: "none", color: "#8899a6",
-                                  fontSize: "13px", fontWeight: 600, cursor: "pointer", padding: "6px 12px"
+                                  background: "transparent", border: "none", color: "#64748b",
+                                  fontSize: "13px", fontWeight: 700, cursor: "pointer", padding: "6px 12px"
                                 }}
                               >
                                 Cancel
@@ -692,7 +799,7 @@ export const ReplyModal: React.FC = () => {
                               <button
                                 onClick={() => saveEdit(reply.id)}
                                 style={{
-                                  background: "#1d9bf0", border: "none", color: "#fff", borderRadius: "9999px",
+                                  background: "#7c3aed", border: "none", color: "#fff", borderRadius: "9999px",
                                   fontSize: "13px", fontWeight: 700, cursor: "pointer", padding: "6px 16px"
                                 }}
                               >
@@ -703,23 +810,35 @@ export const ReplyModal: React.FC = () => {
                         </div>
                       ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                          <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.5", color: "#e1e8ed", whiteSpace: "pre-wrap" }}>
+                          <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.5", color: "#0f172a", whiteSpace: "pre-wrap" }}>
                             {reply.text}
                           </p>
                           
                           {reply.error && (
-                            <div style={{ color: "#f4212e", fontSize: "12px" }}>{reply.error}</div>
+                            <div style={{ color: "#dc2626", fontSize: "12px", fontWeight: 600 }}>{reply.error}</div>
                           )}
 
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
                             <div style={{ display: "flex", gap: "6px" }}>
                               <button
                                 onClick={() => toggleEdit(reply.id, true)}
                                 disabled={isAnyPosting}
                                 style={{
-                                  background: "transparent", border: "1px solid #38444d", color: "#8899a6",
-                                  borderRadius: "9999px", padding: "3px 10px", fontSize: "12px", fontWeight: 600,
-                                  cursor: isAnyPosting ? "not-allowed" : "pointer"
+                                  background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569",
+                                  borderRadius: "9999px", padding: "4px 12px", fontSize: "12px", fontWeight: 600,
+                                  cursor: isAnyPosting ? "not-allowed" : "pointer", transition: "all 0.15s ease"
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isAnyPosting) {
+                                    e.currentTarget.style.borderColor = "#7c3aed"
+                                    e.currentTarget.style.color = "#7c3aed"
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isAnyPosting) {
+                                    e.currentTarget.style.borderColor = "#e2e8f0"
+                                    e.currentTarget.style.color = "#475569"
+                                  }
                                 }}
                               >
                                 Edit
@@ -728,9 +847,21 @@ export const ReplyModal: React.FC = () => {
                                 onClick={() => handleRegenerate(reply.id)}
                                 disabled={isAnyPosting}
                                 style={{
-                                  background: "transparent", border: "1px solid #38444d", color: "#8899a6",
-                                  borderRadius: "9999px", padding: "3px 10px", fontSize: "12px", fontWeight: 600,
-                                  cursor: isAnyPosting ? "not-allowed" : "pointer"
+                                  background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569",
+                                  borderRadius: "9999px", padding: "4px 12px", fontSize: "12px", fontWeight: 600,
+                                  cursor: isAnyPosting ? "not-allowed" : "pointer", transition: "all 0.15s ease"
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isAnyPosting) {
+                                    e.currentTarget.style.borderColor = "#7c3aed"
+                                    e.currentTarget.style.color = "#7c3aed"
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isAnyPosting) {
+                                    e.currentTarget.style.borderColor = "#e2e8f0"
+                                    e.currentTarget.style.color = "#475569"
+                                  }
                                 }}
                               >
                                 Regenerate
@@ -742,25 +873,36 @@ export const ReplyModal: React.FC = () => {
                                 onClick={() => handleCopy(reply.id, reply.text)}
                                 disabled={isAnyPosting}
                                 style={{
-                                  background: "transparent",
-                                  border: `1px solid ${copiedId === reply.id ? "#00ba7c" : "#38444d"}`,
-                                  color: copiedId === reply.id ? "#00ba7c" : "#8899a6",
-                                  borderRadius: "9999px", padding: "5px 14px", fontSize: "12px", fontWeight: 600,
-                                  cursor: isAnyPosting ? "not-allowed" : "pointer", transition: "all 0.2s"
+                                  background: copiedId === reply.id ? "#ecfdf5" : "#ffffff",
+                                  border: `1px solid ${copiedId === reply.id ? "#10b981" : "#cbd5e1"}`,
+                                  color: copiedId === reply.id ? "#059669" : "#334155",
+                                  borderRadius: "9999px", padding: "5px 14px", fontSize: "12px", fontWeight: 700,
+                                  cursor: isAnyPosting ? "not-allowed" : "pointer", transition: "all 0.15s ease"
                                 }}
                               >
-                                {copiedId === reply.id ? "Copied!" : "Copy"}
+                                {copiedId === reply.id ? "✓ Copied" : "Copy"}
                               </button>
                               
                               <button
                                 onClick={() => handlePost(reply.id, reply.text)}
                                 disabled={isAnyPosting}
                                 style={{
-                                  background: postingId === reply.id ? "#192734" : "#1d9bf0",
-                                  border: `1px solid ${postingId === reply.id ? "#1d9bf0" : "transparent"}`,
-                                  color: postingId === reply.id ? "#1d9bf0" : "#fff",
-                                  borderRadius: "9999px", padding: "5px 14px", fontSize: "12px", fontWeight: 700,
-                                  cursor: isAnyPosting ? "not-allowed" : "pointer", transition: "all 0.2s"
+                                  background: postingId === reply.id ? "#f5f3ff" : "#7c3aed",
+                                  border: `1px solid ${postingId === reply.id ? "#7c3aed" : "transparent"}`,
+                                  color: postingId === reply.id ? "#7c3aed" : "#ffffff",
+                                  borderRadius: "9999px", padding: "5px 16px", fontSize: "12px", fontWeight: 700,
+                                  cursor: isAnyPosting ? "not-allowed" : "pointer", transition: "all 0.15s ease",
+                                  boxShadow: postingId === reply.id ? "none" : "0 2px 6px rgba(124, 58, 237, 0.25)"
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isAnyPosting && postingId !== reply.id) {
+                                    e.currentTarget.style.backgroundColor = "#6d28d9"
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isAnyPosting && postingId !== reply.id) {
+                                    e.currentTarget.style.backgroundColor = "#7c3aed"
+                                  }
                                 }}
                               >
                                 {postingId === reply.id ? "Opening..." : "Post this →"}
@@ -776,132 +918,125 @@ export const ReplyModal: React.FC = () => {
             </div>
           )}
 
-          {/* Global Error & Missing Key Fallback */}
+          {/* Global Error & Missing Key */}
           {error && (
             <div style={{
-              padding: "10px 14px", backgroundColor: "#ffe9e9", color: "#f4212e", 
-              borderRadius: "8px", fontSize: "13px", fontWeight: 500, lineHeight: "1.4",
-              display: "flex", justifyContent: "space-between", alignItems: "center"
+              padding: "10px 14px", backgroundColor: "#fef2f2", color: "#b91c1c", 
+              borderRadius: "10px", fontSize: "13px", fontWeight: 600, lineHeight: "1.4",
+              border: "1px solid #fecaca"
             }}>
-              <span>{error}</span>
-              <button
-                onClick={handleGenerateWithGrok}
-                style={{
-                  background: "#1d9bf0", color: "#fff", border: "none", borderRadius: "9999px",
-                  padding: "4px 10px", fontSize: "12px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap"
-                }}
-              >
-                Try Grok instead
-              </button>
+              {error}
             </div>
           )}
 
           {isMissingKey && (
             <div style={{
-              padding: "14px", backgroundColor: "#192734", border: "1px solid #1d9bf0", 
+              padding: "16px", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", 
               borderRadius: "12px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-start"
             }}>
-              <p style={{ margin: 0, fontSize: "14px", color: "#e1e8ed", lineHeight: "1.5" }}>
-                No API key configured for {activeProviderName || "AI"}. You can generate replies directly with Grok for free!
+              <p style={{ margin: 0, fontSize: "13.5px", color: "#4c1d95", lineHeight: "1.5", fontWeight: 600 }}>
+                Add your Gemini API key in Replyly Settings to start generating replies.
               </p>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button
-                  onClick={handleGenerateWithGrok}
-                  style={{
-                    background: "#1d9bf0", color: "#fff", border: "none", borderRadius: "9999px",
-                    padding: "6px 14px", fontSize: "13px", fontWeight: 700, cursor: "pointer"
-                  }}
-                >
-                  Generate with Grok (Free)
-                </button>
-                <button
-                  onClick={openSettings}
-                  style={{
-                    background: "transparent", color: "#8899a6", border: "1px solid #38444d", borderRadius: "9999px",
-                    padding: "6px 14px", fontSize: "13px", fontWeight: 600, cursor: "pointer"
-                  }}
-                >
-                  Settings
-                </button>
-              </div>
+              <button
+                onClick={openSettings}
+                style={{
+                  background: "#7c3aed", color: "#fff", border: "none", borderRadius: "9999px",
+                  padding: "7px 16px", fontSize: "13px", fontWeight: 700, cursor: "pointer",
+                  transition: "background 0.15s ease"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6d28d9"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#7c3aed"}
+              >
+                Open Settings
+              </button>
             </div>
           )}
 
         </div>
 
-        {/* Footer with Generation Engines */}
+        {/* Footer */}
         <div style={{
-          padding: "14px 16px", borderTop: "1px solid #38444d",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          backgroundColor: "#15202b"
+          padding: "14px 20px", borderTop: "1px solid #f1f5f9",
+          display: "flex", justifyContent: "flex-end", backgroundColor: "#ffffff"
         }}>
-          {/* Left: Quick Grok button or free indicator */}
-          <div>
-            {hasApiConfigured ? (
-              <button
-                onClick={handleGenerateWithGrok}
-                disabled={isGenerating || postingId !== null}
-                style={{
-                  background: "transparent", border: "1px solid #38444d", color: "#1d9bf0",
-                  borderRadius: "9999px", padding: "8px 16px", fontSize: "13px", fontWeight: 600,
-                  cursor: isGenerating || postingId !== null ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s"
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#1d9bf0"
-                  e.currentTarget.style.backgroundColor = "rgba(29, 155, 240, 0.05)"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#38444d"
-                  e.currentTarget.style.backgroundColor = "transparent"
-                }}
-                title="Generate directly using X's built-in Grok"
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                  <path d="M12 2L9.5 9.5L2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"></path>
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating || isMissingKey || postingId !== null}
+            style={{
+              background: isMissingKey || postingId !== null 
+                ? "#cbd5e1" 
+                : isGenerating 
+                  ? "linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #6d28d9 100%)" 
+                  : "#7c3aed",
+              backgroundSize: isGenerating ? "200% 200%" : "100% 100%",
+              animation: isGenerating ? "rly-gradient-flow 2s ease infinite" : "none",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "9999px",
+              padding: isGenerating ? "10px 22px" : "10px 24px",
+              fontSize: "14px",
+              fontWeight: 700,
+              cursor: isGenerating || isMissingKey || postingId !== null ? "not-allowed" : "pointer",
+              transition: "all 0.2s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              boxShadow: isGenerating
+                ? "0 0 18px rgba(124, 58, 237, 0.45)"
+                : isMissingKey || postingId !== null
+                  ? "none"
+                  : "0 4px 12px rgba(124, 58, 237, 0.28)",
+              position: "relative",
+              overflow: "hidden"
+            }}
+            onMouseEnter={(e) => {
+              if (!isGenerating && !isMissingKey && postingId === null) {
+                e.currentTarget.style.backgroundColor = "#6d28d9"
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isGenerating && !isMissingKey && postingId === null) {
+                e.currentTarget.style.backgroundColor = "#7c3aed"
+              }
+            }}
+          >
+            {isGenerating ? (
+              <>
+                {/* Bouncing Animated Dots */}
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{
+                    width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#ffffff",
+                    animation: "rly-bounce 1s infinite 0s"
+                  }} />
+                  <span style={{
+                    width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#ffffff",
+                    animation: "rly-bounce 1s infinite 0.2s"
+                  }} />
+                  <span style={{
+                    width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#ffffff",
+                    animation: "rly-bounce 1s infinite 0.4s"
+                  }} />
+                </div>
+                <span key={generationStep} style={{ animation: "rly-fade-in 0.3s ease" }}>
+                  {GENERATION_STEPS[generationStep]}
+                </span>
+              </>
+            ) : replies ? (
+              <>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+                  <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                 </svg>
-                Generate with Grok (Free)
-              </button>
+                <span>Generate Again</span>
+              </>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#8899a6", fontSize: "12px" }}>
-                <span style={{ color: "#00ba7c" }}>●</span>
-                <span>Using built-in Grok (Free)</span>
-              </div>
+              <>
+                <span>Generate Reply</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                  <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42L16.86 11H5v2z"/>
+                </svg>
+              </>
             )}
-          </div>
-
-          {/* Right: Main Generate Button */}
-          <div>
-            <button
-              onClick={() => handleGenerate()}
-              disabled={isGenerating || postingId !== null}
-              style={{
-                backgroundColor: isGenerating || postingId !== null ? "#192734" : "#1d9bf0",
-                color: isGenerating || postingId !== null ? "#8899a6" : "#fff",
-                border: "none", borderRadius: "9999px", padding: "9px 22px", fontSize: "14px", fontWeight: 700,
-                cursor: isGenerating || postingId !== null ? "not-allowed" : "pointer",
-                transition: "background-color 0.2s", display: "flex", alignItems: "center", gap: "8px"
-              }}
-            >
-              {isGenerating ? (
-                "Thinking..."
-              ) : replies ? (
-                <>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                    <path d="M12 2L9.5 9.5L2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"></path>
-                  </svg>
-                  Generate Again
-                </>
-              ) : (
-                <>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                    <path d="M12 2L9.5 9.5L2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"></path>
-                  </svg>
-                  {hasApiConfigured ? `Generate Reply (${activeProviderName || "API"})` : "Generate with Grok"}
-                </>
-              )}
-            </button>
-          </div>
+          </button>
         </div>
 
         {/* Tone Selection Sub-Modal */}
@@ -909,7 +1044,7 @@ export const ReplyModal: React.FC = () => {
           <div
             style={{
               position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.75)", zIndex: 100,
+              backgroundColor: "rgba(15, 23, 42, 0.6)", zIndex: 100,
               display: "flex", alignItems: "center", justifyContent: "center",
               padding: "20px", boxSizing: "border-box", borderRadius: "16px",
               backdropFilter: "blur(4px)"
@@ -918,36 +1053,38 @@ export const ReplyModal: React.FC = () => {
           >
             <div
               style={{
-                width: "100%", maxWidth: "480px", backgroundColor: "#15202b",
-                borderRadius: "14px", border: "1px solid #38444d",
-                boxShadow: "0 12px 36px rgba(0, 0, 0, 0.6)",
+                width: "100%", maxWidth: "480px", backgroundColor: "#ffffff",
+                borderRadius: "16px", border: "1px solid #e2e8f0",
+                boxShadow: "0 20px 40px -10px rgba(15, 23, 42, 0.3)",
                 display: "flex", flexDirection: "column", overflow: "hidden"
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Header */}
               <div style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "14px 16px", borderBottom: "1px solid #38444d"
+                padding: "16px 18px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#ffffff"
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{ fontSize: "16px" }}>🎭</span>
-                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#fff" }}>Select Tone</h3>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>Select Tone</h3>
                 </div>
                 <button
                   onClick={() => setIsToneModalOpen(false)}
                   style={{
-                    background: "none", border: "none", color: "#8899a6", cursor: "pointer",
-                    padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%"
+                    background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", cursor: "pointer",
+                    padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px"
                   }}
                 >
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                     <path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 105.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"></path>
                   </svg>
                 </button>
               </div>
 
+              {/* Grid of Tones */}
               <div style={{
-                padding: "14px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)",
+                padding: "14px 18px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)",
                 gap: "10px", maxHeight: "380px", overflowY: "auto"
               }}>
                 {TONE_OPTIONS.map(tone => {
@@ -960,39 +1097,39 @@ export const ReplyModal: React.FC = () => {
                         setIsToneModalOpen(false)
                       }}
                       style={{
-                        padding: "12px", borderRadius: "10px",
-                        border: `1px solid ${isSelected ? "#1d9bf0" : "#38444d"}`,
-                        backgroundColor: isSelected ? "rgba(29, 155, 240, 0.12)" : "#192734",
+                        padding: "12px 14px", borderRadius: "10px",
+                        border: `1.5px solid ${isSelected ? "#7c3aed" : "#e2e8f0"}`,
+                        backgroundColor: isSelected ? "#f5f3ff" : "#f8fafc",
                         cursor: "pointer", display: "flex", flexDirection: "column", gap: "4px",
-                        transition: "all 0.15s", position: "relative"
+                        transition: "all 0.15s ease", position: "relative"
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
-                          e.currentTarget.style.borderColor = "#1d9bf0"
-                          e.currentTarget.style.backgroundColor = "rgba(29, 155, 240, 0.05)"
+                          e.currentTarget.style.borderColor = "#7c3aed"
+                          e.currentTarget.style.backgroundColor = "#faf5ff"
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!isSelected) {
-                          e.currentTarget.style.borderColor = "#38444d"
-                          e.currentTarget.style.backgroundColor = "#192734"
+                          e.currentTarget.style.borderColor = "#e2e8f0"
+                          e.currentTarget.style.backgroundColor = "#f8fafc"
                         }
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           <span style={{ fontSize: "16px" }}>{tone.emoji}</span>
-                          <span style={{ fontSize: "14px", fontWeight: 700, color: isSelected ? "#1d9bf0" : "#fff" }}>
+                          <span style={{ fontSize: "13.5px", fontWeight: 700, color: isSelected ? "#7c3aed" : "#0f172a" }}>
                             {tone.label}
                           </span>
                         </div>
                         {isSelected && (
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="#1d9bf0">
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="#7c3aed">
                             <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
                           </svg>
                         )}
                       </div>
-                      <span style={{ fontSize: "12px", color: "#8899a6", lineHeight: "1.3" }}>
+                      <span style={{ fontSize: "11.5px", color: "#64748b", lineHeight: "1.3" }}>
                         {tone.description}
                       </span>
                     </div>

@@ -1,5 +1,3 @@
-import { TONE_DEFINITIONS } from "./ai/prompts"
-
 export interface MediaInfo {
   hasImages: boolean
   hasVideo: boolean
@@ -43,6 +41,7 @@ export function detectPostMedia(article: HTMLElement): MediaInfo {
  * Finds the Grok sidebar / drawer container in X's DOM.
  */
 export function findGrokSidebarPanel(): HTMLElement | null {
+  // Check common X selectors for the Grok drawer/sidebar
   const selectors = [
     '[data-testid="GrokDrawer"]',
     'div[aria-label*="Grok" i]',
@@ -58,6 +57,7 @@ export function findGrokSidebarPanel(): HTMLElement | null {
     for (const el of elements) {
       const htmlEl = el as HTMLElement
       const text = htmlEl.innerText || ''
+      // Grok sidebar contains characteristics like "Ask anything", bullet points, source indicators, etc.
       if (
         text.includes('Ask anything') ||
         text.includes('web pages') ||
@@ -69,6 +69,7 @@ export function findGrokSidebarPanel(): HTMLElement | null {
     }
   }
 
+  // Fallback: look for any container containing bullet points and "Ask anything"
   const sections = document.querySelectorAll('section, [role="region"], div')
   for (const section of sections) {
     const el = section as HTMLElement
@@ -87,7 +88,8 @@ export function findGrokSidebarPanel(): HTMLElement | null {
 }
 
 /**
- * Extracts the clean analysis bullet points from the Grok sidebar.
+ * Extracts the clean analysis text from the Grok sidebar.
+ * Strips out header ads, quoted tweet preview, bottom counters, and prompt inputs.
  */
 export function scrapeGrokContext(options?: { postText?: string; author?: string }): string | null {
   const panel = findGrokSidebarPanel()
@@ -97,12 +99,15 @@ export function scrapeGrokContext(options?: { postText?: string; author?: string
   if (!rawText || rawText.trim().length === 0) return null
 
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean)
-  const bulletLines: string[] = []
+
+  // Filter out irrelevant UI lines
+  const cleanedLines: string[] = []
+  let isInsideTweetPreview = false
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
 
-    // Skip promo lines
+    // Skip top header promo lines
     if (
       line.includes('Get rid of ads') ||
       line.includes('boost your replies') ||
@@ -111,43 +116,76 @@ export function scrapeGrokContext(options?: { postText?: string; author?: string
       continue
     }
 
-    // Skip prompt instructions or UI labels
+    // Skip input bar and bottom action controls
     if (
       line === 'Ask anything' ||
       line === 'Fast' ||
       line.match(/^\d+\s+posts?$/i) ||
       line.match(/^\d+\s+web\s+pages?$/i) ||
       line.startsWith('↳') ||
-      line.includes('Write exactly') ||
-      line.includes('STRICT RULES') ||
-      line.includes('Thinking about your request')
+      line.includes('Analyze ') && line.endsWith('...')
     ) {
       continue
     }
 
-    // Capture lines starting with bullet points
+    // Skip user handle / time indicators from the quoted preview (e.g. "@pubity · 9h")
+    if (line.match(/^@\w+\s*·\s*\d+[smhdwy]/i)) {
+      isInsideTweetPreview = true
+      continue
+    }
+
+    // If we're tracking inside tweet preview and hit a bullet point, we've reached the analysis!
     if (line.startsWith('•') || line.startsWith('-')) {
-      bulletLines.push(line)
+      isInsideTweetPreview = false
+    }
+
+    // If still inside tweet preview and it matches the post text snippet, skip it
+    if (isInsideTweetPreview) {
+      if (options?.postText && options.postText.includes(line)) {
+        continue
+      }
+      // If it looks like a short header line before the bullets, skip
+      if (!line.startsWith('•') && i < 10) {
+        continue
+      }
+    }
+
+    // Keep bullet points and meaningful sentences
+    if (
+      line.startsWith('•') ||
+      line.startsWith('-') ||
+      (line.length > 20 && !line.includes('http'))
+    ) {
+      cleanedLines.push(line)
     }
   }
 
-  if (bulletLines.length > 0) {
-    return bulletLines.join('\n\n').trim()
+  if (cleanedLines.length === 0) {
+    // Fallback: collect all lines with bullet points
+    const bulletLines = lines.filter(l => l.startsWith('•') || l.startsWith('-'))
+    if (bulletLines.length > 0) {
+      return bulletLines.join('\n\n')
+    }
+    return null
   }
 
-  return null
+  const analysis = cleanedLines.join('\n\n').trim()
+  return analysis.length >= 20 ? analysis : null
 }
 
 /**
  * Finds and clicks the Grok/AI Reply button on a specific tweet article.
  */
 export async function triggerGrokAnalysis(article: HTMLElement): Promise<void> {
+  // Strategy 1: Look for "AI Reply" or Grok button in the post's action bar
   const actionBar = article.querySelector('div[role="group"]')
   
   if (actionBar) {
+    // Check all clickable items in the action bar
     const clickables = actionBar.querySelectorAll('button, [role="button"], a, div')
     
     for (const el of clickables) {
+      // Don't click Replyly's own button!
       if (el.closest('.replyly-button-container')) continue
 
       const text = (el as HTMLElement).innerText?.toLowerCase() || ''
@@ -168,6 +206,7 @@ export async function triggerGrokAnalysis(article: HTMLElement): Promise<void> {
       }
     }
 
+    // Look for SVG icons resembling Grok/Sparkle (last button before or after bookmark/share)
     const buttons = Array.from(actionBar.querySelectorAll('button, [role="button"]'))
       .filter(b => !b.closest('.replyly-button-container'))
 
@@ -180,6 +219,7 @@ export async function triggerGrokAnalysis(article: HTMLElement): Promise<void> {
     }
   }
 
+  // Strategy 2: Look for any AI/Grok trigger anywhere inside the article
   const articleButtons = article.querySelectorAll('button, [role="button"]')
   for (const btn of articleButtons) {
     if (btn.closest('.replyly-button-container')) continue
@@ -194,10 +234,12 @@ export async function triggerGrokAnalysis(article: HTMLElement): Promise<void> {
     }
   }
 
+  // Strategy 3: Check tweet's "more options" (three dots / caret) menu
   const moreButton = article.querySelector('[data-testid="caret"]') as HTMLElement | null
   if (moreButton) {
     moreButton.click()
 
+    // Wait for dropdown menu to appear
     await new Promise<void>((resolve) => {
       const checkMenu = setInterval(() => {
         const menuItems = document.querySelectorAll('[role="menuitem"]')
@@ -209,6 +251,7 @@ export async function triggerGrokAnalysis(article: HTMLElement): Promise<void> {
       setTimeout(() => { clearInterval(checkMenu); resolve() }, 2000)
     })
 
+    // Look for "Analyze" or "Ask Grok"
     const menuItems = document.querySelectorAll('[role="menuitem"]')
     for (const item of menuItems) {
       const itemText = (item as HTMLElement).innerText?.toLowerCase() || ''
@@ -223,6 +266,7 @@ export async function triggerGrokAnalysis(article: HTMLElement): Promise<void> {
       }
     }
 
+    // Close menu if not found
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
   }
 
@@ -230,280 +274,8 @@ export async function triggerGrokAnalysis(article: HTMLElement): Promise<void> {
 }
 
 /**
- * Finds the input field in the Grok sidebar panel.
- */
-export function findGrokInputField(): HTMLElement | null {
-  const panel = findGrokSidebarPanel() || document.body
-
-  const inputs = panel.querySelectorAll<HTMLElement>(
-    'textarea, div[contenteditable="true"], [role="textbox"], input[type="text"], [data-testid="grok-input"], [placeholder*="Ask" i]'
-  )
-
-  for (const input of inputs) {
-    if (input.offsetParent !== null || window.getComputedStyle(input).display !== 'none') {
-      return input
-    }
-  }
-
-  return null
-}
-
-/**
- * Inserts text into Grok's input box and automatically submits it.
- */
-export async function sendPromptToGrok(promptText: string): Promise<void> {
-  const input = findGrokInputField()
-  if (!input) {
-    throw new Error("Could not find Grok's input box. Please make sure the Grok sidebar is open.")
-  }
-
-  input.focus()
-
-  // 1. Set text value using React prototype setter + synthetic input events
-  if (input instanceof HTMLTextAreaElement || input instanceof HTMLInputElement) {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLTextAreaElement.prototype,
-      'value'
-    )?.set || Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      'value'
-    )?.set
-
-    if (setter) {
-      setter.call(input, promptText)
-    } else {
-      input.value = promptText
-    }
-
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-    input.dispatchEvent(new Event('change', { bubbles: true }))
-  }
-
-  // 2. Also execute rich text insert for Draft.js / Lexical / contenteditable
-  try {
-    document.execCommand('selectAll', false)
-    document.execCommand('insertText', false, promptText)
-  } catch (e) {
-    // Ignore if not supported
-  }
-
-  await new Promise(r => setTimeout(r, 200))
-
-  // 3. Find and click the Submit / Send arrow button (↑)
-  const panel = findGrokSidebarPanel() || document.body
-  let submitted = false
-
-  // Look for the submit button near the input
-  const inputWrapper = input.closest('div[role="region"], form, div:has(button)') || input.parentElement?.parentElement || panel
-  const allButtons = Array.from(inputWrapper.querySelectorAll('button, [role="button"]')) as HTMLElement[]
-
-  for (const btn of allButtons) {
-    const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase()
-    const testId = (btn.getAttribute('data-testid') || '').toLowerCase()
-    const svg = btn.querySelector('svg')
-    
-    // Check aria-labels or testids
-    if (
-      ariaLabel.includes('send') ||
-      ariaLabel.includes('submit') ||
-      ariaLabel.includes('grok') ||
-      ariaLabel.includes('ask') ||
-      testId.includes('send') ||
-      testId.includes('submit') ||
-      testId.includes('grok')
-    ) {
-      btn.click()
-      submitted = true
-      break
-    }
-
-    // Check SVG arrow up path
-    if (svg) {
-      btn.click()
-      submitted = true
-      break
-    }
-  }
-
-  // 4. Always dispatch Enter keydown as well to guarantee submission
-  input.dispatchEvent(new KeyboardEvent('keydown', {
-    key: 'Enter',
-    code: 'Enter',
-    keyCode: 13,
-    which: 13,
-    bubbles: true,
-    cancelable: true
-  }))
-
-  input.dispatchEvent(new KeyboardEvent('keypress', {
-    key: 'Enter',
-    code: 'Enter',
-    keyCode: 13,
-    which: 13,
-    bubbles: true,
-    cancelable: true
-  }))
-
-  input.dispatchEvent(new KeyboardEvent('keyup', {
-    key: 'Enter',
-    code: 'Enter',
-    keyCode: 13,
-    which: 13,
-    bubbles: true,
-    cancelable: true
-  }))
-}
-
-/**
- * Parses strictly numbered replies (1. ..., 2. ..., 3. ...) generated by Grok.
- */
-export function parseGrokReplies(rawText: string, expectedCount: number = 3): string[] {
-  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean)
-  const replies: string[] = []
-
-  for (const line of lines) {
-    // Match "1. ...", "2. ...", "3. ...", "1) ...", "2) ...", "3) ..."
-    const match = line.match(/^(\d+)[\.\)]\s*(.+)$/)
-    if (match && match[2]) {
-      let text = match[2].trim()
-
-      // Strip quotes
-      if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith('“') && text.endsWith('”'))) {
-        text = text.slice(1, -1).trim()
-      }
-
-      // Filter out prompt template placeholders or rules
-      if (
-        text.length > 8 &&
-        !text.startsWith('<') &&
-        !text.endsWith('>') &&
-        !text.toLowerCase().includes('write exactly') &&
-        !text.toLowerCase().includes('strict rules') &&
-        !text.toLowerCase().includes('here are') &&
-        !text.toLowerCase().includes('reply options') &&
-        !text.toLowerCase().includes('thinking about')
-      ) {
-        replies.push(text)
-      }
-    }
-  }
-
-  return replies.slice(0, expectedCount)
-}
-
-/**
- * Generates complete replies using X's built-in Grok AI without any API keys.
- */
-export async function generateRepliesWithGrok(
-  article: HTMLElement,
-  tone: string,
-  customInstruction: string = "",
-  numReplies: number = 3,
-  onProgress?: (liveReplies: string[]) => void
-): Promise<string[]> {
-  // Step 1: Ensure Grok sidebar is open on the target tweet
-  const panel = findGrokSidebarPanel()
-  if (!panel) {
-    await triggerGrokAnalysis(article)
-    await new Promise(r => setTimeout(r, 800))
-  }
-
-  // Wait for Grok input field to be ready
-  let input = findGrokInputField()
-  if (!input) {
-    for (let i = 0; i < 6; i++) {
-      await new Promise(r => setTimeout(r, 400))
-      input = findGrokInputField()
-      if (input) break
-    }
-  }
-
-  if (!input) {
-    throw new Error("Grok sidebar opened, but the input area was not ready. Please try again.")
-  }
-
-  // Step 2: Build the structured prompt for Grok
-  const toneDesc = TONE_DEFINITIONS[tone] || TONE_DEFINITIONS["Smart"] || ""
-  const instructionPart = customInstruction.trim() ? `User Instruction: ${customInstruction.trim()}\n` : ""
-
-  const prompt = `Write exactly ${numReplies} short, distinct, natural replies to this post for X.
-Tone: ${tone} (${toneDesc})
-${instructionPart}
-STRICT RULES:
-- 1-2 sentences per reply (10-35 words per reply, maximum 280 characters).
-- Sound like a real person on X.
-- Never use generic openings like "Great post!", "Love this!", "Interesting perspective!".
-- Format your response strictly as a numbered list:
-1. <first reply>
-2. <second reply>
-3. <third reply>`
-
-  // Step 3: Send prompt into Grok
-  await sendPromptToGrok(prompt)
-
-  // Step 4: Wait for Grok's generated replies in real-time
-  return new Promise<string[]>((resolve, reject) => {
-    const startTime = Date.now()
-    const timeoutMs = 25000
-    let lastParsedReplies: string[] = []
-    let stableCount = 0
-
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime
-      if (elapsed > timeoutMs) {
-        clearInterval(interval)
-        if (lastParsedReplies.length > 0) {
-          resolve(lastParsedReplies)
-        } else {
-          reject(new Error("Grok reply generation timed out. Please try again."))
-        }
-        return
-      }
-
-      const activePanel = findGrokSidebarPanel()
-      if (activePanel) {
-        const fullText = activePanel.innerText || ''
-        const parsed = parseGrokReplies(fullText, numReplies)
-
-        if (parsed.length > 0) {
-          if (onProgress && JSON.stringify(parsed) !== JSON.stringify(lastParsedReplies)) {
-            onProgress(parsed)
-          }
-
-          if (parsed.length === numReplies && JSON.stringify(parsed) === JSON.stringify(lastParsedReplies)) {
-            stableCount++
-            if (stableCount >= 3) { // Stable for ~750ms
-              clearInterval(interval)
-              resolve(parsed)
-              return
-            }
-          } else {
-            lastParsedReplies = parsed
-            stableCount = 0
-          }
-        }
-      }
-    }, 250)
-  })
-}
-
-/**
- * Regenerates a single alternative reply using Grok in real-time.
- */
-export async function regenerateSingleReplyWithGrok(
-  article: HTMLElement,
-  tone: string,
-  customInstruction: string = ""
-): Promise<string> {
-  const replies = await generateRepliesWithGrok(article, tone, customInstruction, 1)
-  if (replies.length > 0) {
-    return replies[0]
-  }
-  throw new Error("Could not regenerate reply with Grok.")
-}
-
-/**
  * Waits for real-time Grok analysis to stream and stabilize for the target tweet.
+ * Dispatches onProgress updates as text streams in real-time.
  */
 export async function waitForGrokRealtimeAnalysis(
   article: HTMLElement,
@@ -517,16 +289,23 @@ export async function waitForGrokRealtimeAnalysis(
   const timeoutMs = options?.timeoutMs || 15000
   const startTime = Date.now()
 
+  // 1. Capture current sidebar text before triggering (to detect changes)
+  const initialText = scrapeGrokContext(options) || ''
+
+  // 2. Trigger Grok analysis on the target tweet
   await triggerGrokAnalysis(article)
 
+  // 3. Poll and observe for new streaming content in real-time
   return new Promise<string>((resolve, reject) => {
     let lastContent = ''
     let stableCount = 0
+    let hasChangedFromInitial = false
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime
       if (elapsed > timeoutMs) {
         clearInterval(interval)
+        // If we got some content, resolve with it rather than failing completely
         if (lastContent && lastContent.length >= 20) {
           resolve(lastContent)
         } else {
@@ -538,12 +317,20 @@ export async function waitForGrokRealtimeAnalysis(
       const currentContent = scrapeGrokContext(options)
 
       if (currentContent) {
+        // Notify progress callback for real-time live preview
         if (options?.onProgress && currentContent !== lastContent) {
           options.onProgress(currentContent)
         }
 
-        if (currentContent === lastContent && currentContent.length > 20) {
+        // Check if content has changed from the initial state
+        if (currentContent !== initialText) {
+          hasChangedFromInitial = true
+        }
+
+        // Check if the streaming content has stabilized
+        if (currentContent === lastContent && currentContent.length > 30) {
           stableCount++
+          // If text hasn't changed for 3 consecutive checks (approx 750ms) and has changed from initial
           if (stableCount >= 3) {
             clearInterval(interval)
             resolve(currentContent)
@@ -574,6 +361,7 @@ export function closeGrokSidebar(): void {
     return
   }
 
+  // Fallback: look for close X SVGs
   const allButtons = panel.querySelectorAll('button')
   for (const btn of allButtons) {
     const svg = btn.querySelector('svg')

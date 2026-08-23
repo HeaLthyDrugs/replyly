@@ -1,4 +1,4 @@
-export type ProviderId = 'gemini' | 'groq' | 'openrouter' | 'grok'
+export type ProviderId = 'gemini' | 'groq' | 'openrouter'
 
 export type ErrorType = 
   | "INVALID_API_KEY" | "RATE_LIMITED" | "QUOTA_EXCEEDED" | "NETWORK_ERROR"
@@ -26,7 +26,6 @@ export interface AIConfig {
     gemini?: ProviderConfig
     groq?: ProviderConfig
     openrouter?: ProviderConfig
-    grok?: ProviderConfig
   }
   activeProvider: ProviderId | null
   fallbackEnabled: boolean

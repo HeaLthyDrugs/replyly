@@ -117,22 +117,45 @@ export const AIManager = {
     return available
   },
 
-  async hasConfiguredApiKeys(): Promise<boolean> {
-    const config = await this.getConfig()
-    if (!config.activeProvider) return false
-    const accounts = this.getAvailableAccounts(config, config.activeProvider)
-    return accounts.length > 0
-  },
-
   async updateAccountState(providerId: ProviderId, accountId: string, updates: Partial<AIAccount>): Promise<void> {
     const config = await this.getConfig()
     const pConfig = config.providers[providerId]
-    if (pConfig && pConfig.accounts) {
-      const index = pConfig.accounts.findIndex(a => a.id === accountId)
-      if (index !== -1) {
-        pConfig.accounts[index] = { ...pConfig.accounts[index], ...updates }
-        await this.saveConfig(config)
-      }
+    if (!pConfig) return
+
+    const account = pConfig.accounts.find(a => a.id === accountId)
+    if (account) {
+      Object.assign(account, updates)
+      await this.saveConfig(config)
+    }
+  },
+
+  async testAccountConnection(providerId: ProviderId, account: AIAccount): Promise<boolean> {
+    const provider = PROVIDERS[providerId]
+    if (!provider) throw new Error("Invalid provider")
+
+    try {
+      await provider.generateReplies({
+        apiKey: account.apiKey,
+        model: account.model,
+        postText: "Testing connection for Replyly",
+        tone: "Smart",
+        customInstruction: "",
+        numReplies: 1
+      })
+
+      await this.updateAccountState(providerId, account.id, {
+        status: "healthy",
+        lastErrorAt: null,
+        cooldownUntil: null
+      })
+
+      return true
+    } catch (err: any) {
+      await this.updateAccountState(providerId, account.id, {
+        status: "invalid",
+        lastErrorAt: Date.now()
+      })
+      throw err
     }
   },
 
