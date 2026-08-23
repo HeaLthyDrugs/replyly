@@ -13,12 +13,17 @@ export function generateReplyPrompt(
   postText: string, 
   tone: string, 
   customInstruction: string = "", 
-  numReplies: number = 3
+  numReplies: number = 3,
+  grokContext: string = ""
 ): string {
   const toneBehavior = TONE_DEFINITIONS[tone] || TONE_DEFINITIONS["Smart"]
 
   const instructionSection = customInstruction.trim() 
     ? `\nOPTIONAL USER INSTRUCTION:\n"${customInstruction}"\nUse the optional user instruction as guidance for what the reply should emphasize. Do not blindly follow it if it would require inventing facts or experiences, or if it violates the strict style rules.\n` 
+    : ""
+
+  const grokContextSection = grokContext.trim()
+    ? `\nMEDIA/VISUAL CONTEXT (from Grok analysis of images, videos, or links in the post):\n"""\n${grokContext}\n"""\nThe above describes what is shown in the images, videos, or linked content attached to the post. Use this context to understand the full picture. Reference visual or media content naturally in your reply when relevant — don't ignore what's shown in the media.\n`
     : ""
 
   return `You are Replyly, an AI networking assistant.
@@ -59,7 +64,7 @@ REPLY LENGTH:
 
 TONE BEHAVIOR (${tone}):
 ${toneBehavior}
-${instructionSection}
+${instructionSection}${grokContextSection}
 VARIETY:
 Generate exactly ${numReplies} genuinely different repl${numReplies === 1 ? 'y' : 'ies'} based on the tone and instructions. Approaches could be:
 1. A useful observation matching the tone.

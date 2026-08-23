@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client"
 import type { PlasmoCSConfig } from "plasmo"
 import { ReplyButton } from "../components/ReplyButton"
 import { ReplyModal } from "../components/ReplyModal"
+import { detectPostMedia } from "../lib/grok-dom"
 
 export const config: PlasmoCSConfig = {
   matches: ["https://x.com/*", "https://twitter.com/*"]
@@ -34,6 +35,9 @@ function processPost(article: HTMLElement): void {
   const author = authorElement ? authorElement.innerText.replace(/\n/g, ' ').trim() : 'Unknown Author'
   const text = textElement ? textElement.innerText.trim() : ''
 
+  // Detect media presence in the post
+  const mediaInfo = detectPostMedia(article)
+
   // Look for the action bar to inject our button
   const actionBar = article.querySelector('div[role="group"]')
   
@@ -51,7 +55,7 @@ function processPost(article: HTMLElement): void {
 
     // Render the React component into our container
     const root = createRoot(buttonContainer)
-    root.render(<ReplyButton postText={text} author={author} article={article} />)
+    root.render(<ReplyButton postText={text} author={author} article={article} hasMedia={mediaInfo.hasMedia} />)
   }
 }
 

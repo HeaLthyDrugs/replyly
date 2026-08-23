@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai"
-import { AIProvider, GenerateRequest, ProviderError } from "../types"
+import { ProviderError } from "../types"
+import type { AIProvider, GenerateRequest } from "../types"
 import { generateReplyPrompt } from "../prompts"
 
 export const geminiProvider: AIProvider = {
@@ -8,7 +9,7 @@ export const geminiProvider: AIProvider = {
 
   async generateReplies(req: GenerateRequest): Promise<string[]> {
     const ai = new GoogleGenAI({ apiKey: req.apiKey })
-    const prompt = generateReplyPrompt(req.postText, req.tone, req.customInstruction, req.numReplies)
+    const prompt = generateReplyPrompt(req.postText, req.tone, req.customInstruction, req.numReplies, req.grokContext)
 
     try {
       const response = await ai.models.generateContent({

@@ -4,12 +4,14 @@ interface ReplyButtonProps {
   postText: string
   author: string
   article: HTMLElement
+  hasMedia: boolean
 }
 
 export const ReplyButton: React.FC<ReplyButtonProps> = ({
   postText,
   author,
-  article
+  article,
+  hasMedia
 }) => {
   const handleClick = (e: React.MouseEvent) => {
     // Prevent the click from bubbling up to the article, which would open the post
@@ -18,7 +20,7 @@ export const ReplyButton: React.FC<ReplyButtonProps> = ({
 
     // Dispatch custom event to open the modal
     const event = new CustomEvent("replyly-open-modal", {
-      detail: { author, postText, article }
+      detail: { author, postText, article, hasMedia }
     })
     document.dispatchEvent(event)
   }

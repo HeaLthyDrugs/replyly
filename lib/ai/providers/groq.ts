@@ -1,4 +1,5 @@
-import { AIProvider, GenerateRequest, ProviderError } from "../types"
+import { ProviderError } from "../types"
+import type { AIProvider, GenerateRequest } from "../types"
 import { generateReplyPrompt } from "../prompts"
 
 export const groqProvider: AIProvider = {
@@ -6,7 +7,7 @@ export const groqProvider: AIProvider = {
   name: 'Groq',
 
   async generateReplies(req: GenerateRequest): Promise<string[]> {
-    const prompt = generateReplyPrompt(req.postText, req.tone, req.customInstruction, req.numReplies)
+    const prompt = generateReplyPrompt(req.postText, req.tone, req.customInstruction, req.numReplies, req.grokContext)
 
     try {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {

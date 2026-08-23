@@ -1,4 +1,5 @@
-import { AIConfig, ProviderId, MissingApiKeyError, ProviderError, AIAccount, GenerationResult } from "./types"
+import { MissingApiKeyError, ProviderError } from "./types"
+import type { AIConfig, ProviderId, AIAccount, GenerationResult } from "./types"
 import { geminiProvider } from "./providers/gemini"
 import { groqProvider } from "./providers/groq"
 import { openrouterProvider } from "./providers/openrouter"
@@ -116,6 +117,13 @@ export const AIManager = {
     return available
   },
 
+  async hasConfiguredApiKeys(): Promise<boolean> {
+    const config = await this.getConfig()
+    if (!config.activeProvider) return false
+    const accounts = this.getAvailableAccounts(config, config.activeProvider)
+    return accounts.length > 0
+  },
+
   async updateAccountState(providerId: ProviderId, accountId: string, updates: Partial<AIAccount>): Promise<void> {
     const config = await this.getConfig()
     const pConfig = config.providers[providerId]
@@ -132,7 +140,8 @@ export const AIManager = {
     postText: string, 
     tone: string, 
     customInstruction: string = "", 
-    numReplies: number = 3
+    numReplies: number = 3,
+    grokContext: string = ""
   ): Promise<GenerationResult> {
     const config = await this.getConfig()
     
@@ -159,7 +168,8 @@ export const AIManager = {
             customInstruction,
             numReplies,
             model: account.model,
-            apiKey: account.apiKey
+            apiKey: account.apiKey,
+            grokContext
           })
 
           // Success! Reset status and cooldown
