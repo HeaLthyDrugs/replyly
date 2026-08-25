@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { AIManager } from "../lib/ai/manager"
 import { MissingApiKeyError } from "../lib/ai/types"
 import { openReplyComposer } from "../lib/x-dom"
-import { getGrokContext } from "../lib/grok-dom"
+import { detectPostMedia, findGrokSidebarPanel, getGrokContext, isGrokThinkingOrStreaming, scrapeGrokContext } from "../lib/grok-dom"
 import { RlyLogoIcon } from "./Logo"
 
 export interface ModalData {
@@ -84,6 +84,8 @@ export const ReplyModal: React.FC = () => {
   // Grok context state
   const [grokContext, setGrokContext] = useState<string | null>(null)
   const [isGrokLoading, setIsGrokLoading] = useState(false)
+  const [isGrokStreaming, setIsGrokStreaming] = useState(false)
+  const [isGrokDismissed, setIsGrokDismissed] = useState(false)
   const [grokError, setGrokError] = useState<string | null>(null)
   const [isGrokExpanded, setIsGrokExpanded] = useState(false)
 
@@ -109,6 +111,7 @@ export const ReplyModal: React.FC = () => {
       setData(newPostData)
       setIsOpen(true)
       setIsToneModalOpen(false)
+      setIsGrokDismissed(false)
       
       const key = getCacheKey(newPostData.author, newPostData.postText)
       const cached = postCache.get(key)
@@ -139,12 +142,57 @@ export const ReplyModal: React.FC = () => {
       setPostingId(null)
       setIsMissingKey(false)
       setIsGrokLoading(false)
+      setIsGrokStreaming(false)
       setGrokError(null)
     }
 
     document.addEventListener("replyly-open-modal", handleOpenModal)
     return () => document.removeEventListener("replyly-open-modal", handleOpenModal)
   }, [])
+
+  // Auto-refresh and synchronize real-time Grok context automatically until full context is present
+  useEffect(() => {
+    if (!isOpen || !data?.article || isGrokDismissed) return
+
+    let isMounted = true
+    const syncInterval = setInterval(() => {
+      if (!isMounted) return
+
+      const panel = findGrokSidebarPanel()
+      if (!panel) {
+        setIsGrokStreaming(false)
+        return
+      }
+
+      const isThinking = isGrokThinkingOrStreaming(panel)
+      const freshText = scrapeGrokContext({ postText: data.postText, author: data.author })
+
+      if (isThinking) {
+        setIsGrokStreaming(true)
+        if (freshText && freshText.length >= 20) {
+          setGrokContext(freshText)
+          setIsGrokExpanded(true)
+        }
+      } else {
+        setIsGrokStreaming(false)
+        if (freshText && freshText.length >= 20) {
+          setGrokContext((prev) => {
+            // If new text is longer or updated, update automatically
+            if (!prev || freshText.length > prev.length || (freshText !== prev && !prev.includes(freshText))) {
+              setIsGrokExpanded(true)
+              return freshText
+            }
+            return prev
+          })
+        }
+      }
+    }, 400)
+
+    return () => {
+      isMounted = false
+      clearInterval(syncInterval)
+    }
+  }, [isOpen, data, isGrokDismissed])
 
   // Auto-save to cache whenever replies, tone, customInstruction, or grokContext change
   useEffect(() => {
@@ -289,7 +337,9 @@ export const ReplyModal: React.FC = () => {
 
   const handleGrokContext = async () => {
     if (!data?.article) return
+    setIsGrokDismissed(false)
     setIsGrokLoading(true)
+    setIsGrokStreaming(true)
     setGrokError(null)
 
     try {
@@ -307,6 +357,7 @@ export const ReplyModal: React.FC = () => {
       setGrokError(err.message || "Failed to get real-time context from Grok. You can still generate replies without it.")
     } finally {
       setIsGrokLoading(false)
+      setIsGrokStreaming(false)
     }
   }
 
@@ -314,6 +365,7 @@ export const ReplyModal: React.FC = () => {
     setGrokContext(null)
     setGrokError(null)
     setIsGrokExpanded(false)
+    setIsGrokDismissed(true)
   }
 
   const activeTone = TONE_OPTIONS.find(t => t.value === selectedTone) || TONE_OPTIONS[0]
@@ -329,7 +381,7 @@ export const ReplyModal: React.FC = () => {
       }}
       onClick={handleClose}
     >
-      {/* Styles for vibrant animations */}
+      {/* Styles for vibrant animations & custom sleek scrollbars */}
       <style>{`
         @keyframes replyly-spin { to { transform: rotate(360deg); } }
         @keyframes rly-gradient-flow {
@@ -353,6 +405,29 @@ export const ReplyModal: React.FC = () => {
           from { opacity: 0; transform: translateY(2px); }
           to { opacity: 1; transform: translateY(0); }
         }
+
+        .replyly-scroll {
+          overflow-x: hidden !important;
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
+        .replyly-scroll::-webkit-scrollbar {
+          width: 5px;
+          height: 0px;
+        }
+        .replyly-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .replyly-scroll::-webkit-scrollbar-thumb {
+          background-color: #cbd5e1;
+          border-radius: 9999px;
+        }
+        .replyly-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: #94a3b8;
+        }
+        .replyly-scroll::-webkit-scrollbar-corner {
+          background: transparent;
+        }
       `}</style>
 
       <div
@@ -373,13 +448,6 @@ export const ReplyModal: React.FC = () => {
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <RlyLogoIcon size={26} />
             <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>Replyly</h2>
-            <span style={{
-              fontSize: "10px", fontWeight: 800,
-              backgroundColor: "#f5f3ff", color: "#7c3aed",
-              padding: "2px 6px", borderRadius: "5px", border: "1px solid #ddd6fe"
-            }}>
-              RLY
-            </span>
           </div>
           <button
             onClick={handleClose}
@@ -404,15 +472,16 @@ export const ReplyModal: React.FC = () => {
         </div>
 
         {/* Body Content */}
-        <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
+        <div className="replyly-scroll" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto", overflowX: "hidden" }}>
           
           {/* Post Reference */}
           <div>
             <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Post you're replying to
             </div>
-            <div style={{ 
-              fontSize: "13.5px", lineHeight: "1.5", maxHeight: "90px", overflowY: "auto",
+            <div className="replyly-scroll" style={{ 
+              fontSize: "13.5px", lineHeight: "1.5", maxHeight: "90px", overflowY: "auto", overflowX: "hidden",
+              wordBreak: "break-word", overflowWrap: "anywhere",
               padding: "10px 14px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0"
             }}>
               <strong style={{ color: "#0f172a", display: "block", marginBottom: "2px", fontWeight: 700 }}>{data.author}</strong>
@@ -420,19 +489,21 @@ export const ReplyModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Grok Context Section - only shown for posts with media */}
-          {data.hasMedia && (
+          {/* Grok Context Section */}
+          {data.article && (
             <div>
               {/* Media detected indicator */}
-              <div style={{ 
-                display: "flex", alignItems: "center", gap: "6px", 
-                fontSize: "12px", color: "#64748b", marginBottom: "8px", fontWeight: 600
-              }}>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                  <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"></path>
-                </svg>
-                This post contains media
-              </div>
+              {(data.hasMedia || detectPostMedia(data.article).hasMedia) && (
+                <div style={{ 
+                  display: "flex", alignItems: "center", gap: "6px", 
+                  fontSize: "12px", color: "#64748b", marginBottom: "8px", fontWeight: 600
+                }}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"></path>
+                  </svg>
+                  This post contains media
+                </div>
+              )}
 
               {/* Grok context states */}
               {!grokContext && !isGrokLoading && (
@@ -462,13 +533,13 @@ export const ReplyModal: React.FC = () => {
                     Get real-time context from Grok
                   </button>
                   <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px", textAlign: "center" }}>
-                    Uses X's built-in Grok to analyze images/videos in this post
+                    Uses X's built-in Grok to analyze media & real-time context for this post
                   </div>
                 </div>
               )}
 
               {/* Loading state */}
-              {isGrokLoading && (
+              {isGrokLoading && !grokContext && (
                 <div style={{
                   padding: "12px", backgroundColor: "#f8fafc", borderRadius: "10px",
                   border: "1px solid #e2e8f0", display: "flex", alignItems: "center",
@@ -505,7 +576,7 @@ export const ReplyModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Grok context preview with Live Refresh */}
+              {/* Grok context preview with Live Auto-Refresh */}
               {grokContext && (
                 <div style={{
                   borderRadius: "10px", border: "1px solid #ddd6fe",
@@ -522,12 +593,27 @@ export const ReplyModal: React.FC = () => {
                       onClick={() => setIsGrokExpanded(!isGrokExpanded)}
                       style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", flex: 1 }}
                     >
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="#059669">
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
-                      </svg>
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#059669" }}>
-                        Grok context active
-                      </span>
+                      {isGrokLoading || isGrokStreaming ? (
+                        <>
+                          <div style={{
+                            width: "12px", height: "12px", border: "2px solid #ddd6fe",
+                            borderTopColor: "#7c3aed", borderRadius: "50%",
+                            animation: "replyly-spin 0.8s linear infinite"
+                          }} />
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: "#7c3aed" }}>
+                            Grok is thinking & streaming context...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="#059669">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
+                          </svg>
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: "#059669" }}>
+                            Grok context active
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -543,7 +629,7 @@ export const ReplyModal: React.FC = () => {
                         }}
                         title="Fetch fresh real-time analysis from Grok"
                       >
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style={{ animation: isGrokLoading ? "replyly-spin 1s linear infinite" : "none" }}>
                           <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                         </svg>
                         Refresh
@@ -567,12 +653,13 @@ export const ReplyModal: React.FC = () => {
                   </div>
 
                   {isGrokExpanded && (
-                    <div style={{
+                    <div className="replyly-scroll" style={{
                       padding: "0 12px 10px", fontSize: "12px", lineHeight: "1.5",
-                      color: "#334155", maxHeight: "120px", overflowY: "auto",
+                      color: "#334155", maxHeight: "120px", overflowY: "auto", overflowX: "hidden",
+                      wordBreak: "break-word", overflowWrap: "anywhere",
                       borderTop: "1px solid #ddd6fe"
                     }}>
-                      <div style={{ paddingTop: "8px", whiteSpace: "pre-wrap" }}>{grokContext}</div>
+                      <div style={{ paddingTop: "8px", whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere" }}>{grokContext}</div>
                     </div>
                   )}
                 </div>
@@ -1083,9 +1170,9 @@ export const ReplyModal: React.FC = () => {
               </div>
 
               {/* Grid of Tones */}
-              <div style={{
+              <div className="replyly-scroll" style={{
                 padding: "14px 18px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "10px", maxHeight: "380px", overflowY: "auto"
+                gap: "10px", maxHeight: "380px", overflowY: "auto", overflowX: "hidden"
               }}>
                 {TONE_OPTIONS.map(tone => {
                   const isSelected = selectedTone === tone.value

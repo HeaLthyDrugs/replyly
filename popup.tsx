@@ -119,24 +119,9 @@ function IndexPopup() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <RlyLogoIcon size={28} />
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ fontSize: "16px", fontWeight: 800, letterSpacing: "-0.2px" }}>
-              Replyly
-            </span>
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                backgroundColor: "#f5f3ff",
-                color: "#7c3aed",
-                padding: "2px 5px",
-                borderRadius: "4px",
-                border: "1px solid #ddd6fe"
-              }}
-            >
-              RLY
-            </span>
-          </div>
+          <span style={{ fontSize: "16px", fontWeight: 800, letterSpacing: "-0.2px", color: "#0f172a" }}>
+            Replyly
+          </span>
         </div>
 
         {/* Quick Settings Icon Button */}

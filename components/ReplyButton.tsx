@@ -1,4 +1,5 @@
 import React from "react"
+import { detectPostMedia } from "../lib/grok-dom"
 import { RlyLogoIcon } from "./Logo"
 
 interface ReplyButtonProps {
@@ -19,9 +20,15 @@ export const ReplyButton: React.FC<ReplyButtonProps> = ({
     e.preventDefault()
     e.stopPropagation()
 
+    // Dynamically re-evaluate media and text at click time in case it was lazy-loaded
+    const textElement = article.querySelector('[data-testid="tweetText"]') as HTMLElement | null
+    const currentText = textElement ? textElement.innerText.trim() : postText
+    const currentMediaInfo = detectPostMedia(article)
+    const mediaPresent = currentMediaInfo.hasMedia || hasMedia
+
     // Dispatch custom event to open the modal
     const event = new CustomEvent("replyly-open-modal", {
-      detail: { author, postText, article, hasMedia }
+      detail: { author, postText: currentText, article, hasMedia: mediaPresent }
     })
     document.dispatchEvent(event)
   }
