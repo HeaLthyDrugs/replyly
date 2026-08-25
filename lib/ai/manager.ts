@@ -314,5 +314,40 @@ export const AIManager = {
       // Throw the original active provider error
       throw activeError
     }
+  },
+
+  async generatePostContext(postText: string, author: string, mediaInfo?: string): Promise<string> {
+    const config = await this.getConfig()
+    if (!config.activeProvider) {
+      throw new MissingApiKeyError()
+    }
+
+    const providerId = config.activeProvider
+    const accounts = this.getAvailableAccounts(config, providerId)
+    if (accounts.length === 0) {
+      throw new ProviderError(`No available accounts for ${PROVIDER_NAMES[providerId] || providerId}.`, "PROVIDER_ERROR")
+    }
+
+    const account = accounts[0]
+    const provider = PROVIDERS[providerId] || PROVIDERS.gemini
+
+    const contextPrompt = `Analyze this X (Twitter) post by ${author} and provide key factual context, main topics, background insights, and core summary to assist in drafting relevant replies:
+"""
+${postText}
+"""
+${mediaInfo ? `Media present in post: ${mediaInfo}` : ''}
+
+Format as 2 to 4 concise bullet points starting with "• ". Keep it factual and helpful.`
+
+    const replies = await provider.generateReplies({
+      postText: contextPrompt,
+      tone: "Smart",
+      customInstruction: "Provide 2-4 concise bullet points summarizing the context and core topic of the post.",
+      numReplies: 1,
+      model: account.model || "default",
+      apiKey: account.apiKey
+    })
+
+    return replies[0] || ""
   }
 }

@@ -70,7 +70,17 @@ const GENERATION_STEPS = [
 // Module-level cache to persist generated replies for specific posts across modal opens
 const postCache = new Map<string, CachedPostData>()
 
-function getCacheKey(author: string, postText: string): string {
+function getCacheKey(author: string, postText: string, article?: HTMLElement | null): string {
+  if (article) {
+    const statusLink = article.querySelector('a[href*="/status/"]') as HTMLAnchorElement | null
+    if (statusLink) {
+      const href = statusLink.getAttribute('href') || statusLink.href || ''
+      const statusMatch = href.match(/\/status\/(\d+)/)
+      if (statusMatch && statusMatch[1]) {
+        return `status:${statusMatch[1]}`
+      }
+    }
+  }
   return `${author}::${postText}`
 }
 
@@ -125,7 +135,7 @@ export const ReplyModal: React.FC = () => {
       setIsToneModalOpen(false)
       setIsGrokDismissed(false)
       
-      const key = getCacheKey(newPostData.author, newPostData.postText)
+      const key = getCacheKey(newPostData.author, newPostData.postText, newPostData.article)
       const cached = postCache.get(key)
       if (cached) {
         setReplies(cached.replies)
@@ -162,9 +172,11 @@ export const ReplyModal: React.FC = () => {
     return () => document.removeEventListener("replyly-open-modal", handleOpenModal)
   }, [])
 
-  // Auto-refresh and synchronize real-time Grok context automatically until full context is present
+  // Auto-refresh and synchronize real-time Grok context automatically while active
   useEffect(() => {
     if (!isOpen || !data?.article || isGrokDismissed) return
+    // Only auto-sync if Grok analysis is actively loading/streaming or already present for this post
+    if (!isGrokLoading && !isGrokStreaming && !grokContext) return
 
     let isMounted = true
     const syncInterval = setInterval(() => {
@@ -177,7 +189,11 @@ export const ReplyModal: React.FC = () => {
       }
 
       const isThinking = isGrokThinkingOrStreaming(panel)
-      const freshText = scrapeGrokContext({ postText: data.postText, author: data.author })
+      const freshText = scrapeGrokContext({
+        postText: data.postText,
+        author: data.author,
+        article: data.article
+      })
 
       if (isThinking) {
         setIsGrokStreaming(true)
@@ -204,12 +220,12 @@ export const ReplyModal: React.FC = () => {
       isMounted = false
       clearInterval(syncInterval)
     }
-  }, [isOpen, data, isGrokDismissed])
+  }, [isOpen, data, isGrokDismissed, isGrokLoading, isGrokStreaming, grokContext])
 
   // Auto-save to cache whenever replies, tone, customInstruction, or grokContext change
   useEffect(() => {
     if (data && (replies || grokContext)) {
-      const key = getCacheKey(data.author, data.postText)
+      const key = getCacheKey(data.author, data.postText, data.article)
       postCache.set(key, {
         replies,
         selectedTone,
@@ -363,6 +379,7 @@ export const ReplyModal: React.FC = () => {
     setIsGrokLoading(true)
     setIsGrokStreaming(true)
     setGrokError(null)
+    setGrokContext(null) // Clear any previous context to prevent stale display
 
     try {
       const context = await getGrokContext(data.article, {
@@ -373,10 +390,29 @@ export const ReplyModal: React.FC = () => {
           setIsGrokExpanded(true)
         }
       })
-      setGrokContext(context.analysis)
-      setIsGrokExpanded(true)
-    } catch (err: any) {
-      setGrokError(err.message || "Failed to get real-time context from Grok. You can still generate replies without it.")
+      if (context?.analysis) {
+        setGrokContext(context.analysis)
+        setIsGrokExpanded(true)
+        setIsGrokLoading(false)
+        setIsGrokStreaming(false)
+        return
+      }
+    } catch {
+      // Native Grok trigger wasn't available; fall through to instant AI context generation
+    }
+
+    try {
+      const mediaDetected = detectPostMedia(data.article)
+      const mediaStr = mediaDetected.hasMedia ? "Images / Video attached to post" : ""
+      const aiContext = await AIManager.generatePostContext(data.postText, data.author, mediaStr)
+      if (aiContext && aiContext.trim().length > 0) {
+        setGrokContext(aiContext)
+        setIsGrokExpanded(true)
+      } else {
+        setGrokError("Could not generate context for this post.")
+      }
+    } catch (aiErr: any) {
+      setGrokError(aiErr.message || "Failed to get real-time context. You can still generate replies without it.")
     } finally {
       setIsGrokLoading(false)
       setIsGrokStreaming(false)
@@ -388,6 +424,13 @@ export const ReplyModal: React.FC = () => {
     setGrokError(null)
     setIsGrokExpanded(false)
     setIsGrokDismissed(true)
+    if (data) {
+      const key = getCacheKey(data.author, data.postText, data.article)
+      const existing = postCache.get(key)
+      if (existing) {
+        postCache.set(key, { ...existing, grokContext: null })
+      }
+    }
   }
 
   const activeTone = TONE_OPTIONS.find(t => t.value === selectedTone) || TONE_OPTIONS[0]
