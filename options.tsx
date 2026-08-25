@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { AIManager, DEFAULT_CONFIG } from "./lib/ai/manager"
 import type { AIConfig, ProviderId, AIAccount } from "./lib/ai/types"
 import { RlyLogoIcon } from "./components/Logo"
+import { GUIDE_CATEGORIES, GUIDE_ITEMS, type GuideCategory, type GuideItem } from "./lib/guidesData"
 
 export type SettingsTab = "keys" | "preferences" | "guides"
 
@@ -286,6 +287,13 @@ export function Options() {
   const [statusMsg, setStatusMsg] = useState("")
   const [statusType, setStatusType] = useState<"success" | "error" | "info" | "">("")
 
+  // Guides & FAQ state
+  const [selectedGuideCategory, setSelectedGuideCategory] = useState<GuideCategory>("all")
+  const [guideSearchQuery, setGuideSearchQuery] = useState("")
+  const [expandedGuideIds, setExpandedGuideIds] = useState<Record<string, boolean>>({
+    "gemini-key": true
+  })
+
   const providerList: ProviderId[] = [
     "gemini",
     "openai",
@@ -545,6 +553,54 @@ export function Options() {
     if (diff <= 0) return null
     return `Cooldown (${Math.ceil(diff / 1000)}s)`
   }
+
+  const toggleGuide = (id: string) => {
+    setExpandedGuideIds((prev) => ({
+      ...prev,
+      [id]: !prev[id]
+    }))
+  }
+
+  const expandAllGuides = () => {
+    const allOpen: Record<string, boolean> = {}
+    filteredGuides.forEach((g) => {
+      allOpen[g.id] = true
+    })
+    setExpandedGuideIds(allOpen)
+  }
+
+  const collapseAllGuides = () => {
+    setExpandedGuideIds({})
+  }
+
+  const filteredGuides = useMemo(() => {
+    return GUIDE_ITEMS.filter((item) => {
+      const matchesCategory = selectedGuideCategory === "all" || item.category === selectedGuideCategory
+      if (!matchesCategory) return false
+
+      if (!guideSearchQuery.trim()) return true
+      const q = guideSearchQuery.toLowerCase()
+      const titleMatch = item.title.toLowerCase().includes(q)
+      const subtitleMatch = item.subtitle?.toLowerCase().includes(q) || false
+      const keywordMatch = item.keywords.some((k) => k.toLowerCase().includes(q))
+      return titleMatch || subtitleMatch || keywordMatch
+    })
+  }, [selectedGuideCategory, guideSearchQuery])
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<GuideCategory, number> = {
+      all: GUIDE_ITEMS.length,
+      keys: 0,
+      tips: 0,
+      platforms: 0,
+      faq: 0,
+      troubleshooting: 0
+    }
+    for (const item of GUIDE_ITEMS) {
+      counts[item.category]++
+    }
+    return counts
+  }, [])
 
   if (loading) {
     return (
@@ -1247,7 +1303,7 @@ export function Options() {
                       </h2>
                     </div>
                     <p style={{ margin: "3px 0 0", fontSize: "13px", color: "#6b7280" }}>
-                      Toggle injection and reply buttons on supported social feeds (X and LinkedIn).
+                      Toggle injection and reply buttons on supported social feeds (X.com active, LinkedIn coming soon).
                     </p>
                   </div>
 
@@ -1262,112 +1318,338 @@ export function Options() {
 
           {activeTab === "guides" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              {/* Category Filter Pills */}
               <div
                 style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: "12px",
-                  padding: "20px",
-                  border: "1px solid #e5e7eb"
+                  display: "flex",
+                  gap: "6px",
+                  flexWrap: "wrap",
+                  paddingBottom: "2px"
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "20px" }}>💎</span>
-                    <h3 style={{ margin: 0, fontSize: "14.5px", fontWeight: 600, color: "#111827" }}>
-                      How to get a Free Google Gemini API Key
-                    </h3>
-                  </div>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      color: "#7c3aed",
-                      backgroundColor: "#f5f3ff",
-                      padding: "5px 12px",
-                      borderRadius: "6px",
-                      textDecoration: "none",
-                      border: "1px solid #ddd6fe"
-                    }}
-                  >
-                    Open AI Studio ↗
-                  </a>
-                </div>
-                <ol style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", color: "#4b5563", lineHeight: "1.8" }}>
-                  <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 600 }}>Google AI Studio (aistudio.google.com)</a>.</li>
-                  <li>Sign in with your Google account.</li>
-                  <li>Click <strong>&quot;Create API Key&quot;</strong>.</li>
-                  <li>Copy your key and paste it into the <strong>API Keys</strong> tab.</li>
-                </ol>
+                {GUIDE_CATEGORIES.map((cat) => {
+                  const isSelected = selectedGuideCategory === cat.id
+                  const count = categoryCounts[cat.id]
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedGuideCategory(cat.id)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        border: isSelected ? "1.5px solid #7c3aed" : "1px solid #e5e7eb",
+                        backgroundColor: isSelected ? "#f5f3ff" : "#ffffff",
+                        color: isSelected ? "#7c3aed" : "#4b5563",
+                        fontSize: "12.5px",
+                        fontWeight: isSelected ? 600 : 500,
+                        cursor: "pointer",
+                        transition: "all 0.15s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = "#f9fafb"
+                          e.currentTarget.style.borderColor = "#d1d5db"
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = "#ffffff"
+                          e.currentTarget.style.borderColor = "#e5e7eb"
+                        }
+                      }}
+                    >
+                      <span style={{ fontSize: "13px" }}>{cat.icon}</span>
+                      <span>{cat.label}</span>
+                      <span
+                        style={{
+                          fontSize: "10.5px",
+                          fontWeight: 600,
+                          padding: "1px 6px",
+                          borderRadius: "9999px",
+                          backgroundColor: isSelected ? "#ede9fe" : "#f3f4f6",
+                          color: isSelected ? "#7c3aed" : "#6b7280"
+                        }}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
 
+              {/* Search & Bulk Expand/Collapse Actions */}
               <div
                 style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: "12px",
-                  padding: "20px",
-                  border: "1px solid #e5e7eb"
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "12px",
+                  flexWrap: "wrap"
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "20px" }}>⚡</span>
-                    <h3 style={{ margin: 0, fontSize: "14.5px", fontWeight: 600, color: "#111827" }}>
-                      How to get a Free GroqCloud API Key
-                    </h3>
-                  </div>
-                  <a
-                    href="https://console.groq.com/keys"
-                    target="_blank"
-                    rel="noreferrer"
+                <div style={{ position: "relative", flex: 1, minWidth: "220px", maxWidth: "420px" }}>
+                  <span style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: "12px" }}>
+                    🔍
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search guides, setup steps, or questions..."
+                    value={guideSearchQuery}
+                    onChange={(e) => setGuideSearchQuery(e.target.value)}
                     style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      color: "#7c3aed",
-                      backgroundColor: "#f5f3ff",
-                      padding: "5px 12px",
-                      borderRadius: "6px",
-                      textDecoration: "none",
-                      border: "1px solid #ddd6fe"
+                      width: "100%",
+                      padding: "8px 12px 8px 32px",
+                      borderRadius: "8px",
+                      border: "1px solid #e5e7eb",
+                      fontSize: "12.5px",
+                      color: "#111827",
+                      backgroundColor: "#ffffff",
+                      boxSizing: "border-box"
                     }}
-                  >
-                    Open Groq Console ↗
-                  </a>
+                  />
+                  {guideSearchQuery && (
+                    <button
+                      onClick={() => setGuideSearchQuery("")}
+                      style={{
+                        position: "absolute",
+                        right: "10px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: "#9ca3af",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        padding: 0
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
-                <ol style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", color: "#4b5563", lineHeight: "1.8" }}>
-                  <li>Visit the <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 600 }}>Groq Console</a>.</li>
-                  <li>Create a free account or sign in with GitHub/Google.</li>
-                  <li>Click <strong>&quot;Create API Key&quot;</strong>.</li>
-                  <li>Paste the key into Replyly for instant ultra-fast responses!</li>
-                </ol>
+
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    onClick={expandAllGuides}
+                    style={{
+                      padding: "6px 11px",
+                      borderRadius: "6px",
+                      border: "1px solid #e5e7eb",
+                      backgroundColor: "#ffffff",
+                      color: "#4b5563",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9fafb")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
+                  >
+                    Expand All
+                  </button>
+                  <button
+                    onClick={collapseAllGuides}
+                    style={{
+                      padding: "6px 11px",
+                      borderRadius: "6px",
+                      border: "1px solid #e5e7eb",
+                      backgroundColor: "#ffffff",
+                      color: "#4b5563",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9fafb")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
+                  >
+                    Collapse All
+                  </button>
+                </div>
               </div>
 
-              <div
-                style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: "12px",
-                  padding: "20px",
-                  border: "1px solid #e5e7eb"
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                  <span style={{ fontSize: "20px" }}>🔒</span>
-                  <h3 style={{ margin: 0, fontSize: "14.5px", fontWeight: 600, color: "#111827" }}>
-                    Privacy & Client-Side BYOK Security
-                  </h3>
-                </div>
-                <div style={{ fontSize: "13px", color: "#4b5563", lineHeight: "1.6" }}>
-                  <p style={{ margin: "0 0 8px 0" }}>
-                    <strong>Are my API keys sent to any third-party server?</strong><br />
-                    No! Replyly uses a 100% client-side BYOK architecture. Your keys are stored strictly in your browser&apos;s local storage and only communicate directly with official provider endpoints (Google, Groq, OpenRouter).
-                  </p>
-                  <p style={{ margin: 0 }}>
-                    <strong>Is this free?</strong><br />
-                    Yes! Google Gemini and Groq offer generous free daily quotas suitable for hundreds of replies daily without any subscription fees.
-                  </p>
-                </div>
+              {/* Accordion Items List */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {filteredGuides.length > 0 ? (
+                  filteredGuides.map((item) => {
+                    const isExpanded = !!expandedGuideIds[item.id]
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          backgroundColor: "#ffffff",
+                          borderRadius: "10px",
+                          border: isExpanded ? "1px solid #ddd6fe" : "1px solid #e5e7eb",
+                          boxShadow: isExpanded ? "0 2px 8px rgba(124, 58, 237, 0.06)" : "0 1px 2px rgba(0,0,0,0.02)",
+                          overflow: "hidden",
+                          transition: "all 0.15s ease"
+                        }}
+                      >
+                        {/* Accordion Header */}
+                        <div
+                          onClick={() => toggleGuide(item.id)}
+                          style={{
+                            padding: "14px 16px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            userSelect: "none",
+                            backgroundColor: isExpanded ? "#faf8ff" : "#ffffff",
+                            transition: "background-color 0.15s ease"
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isExpanded) e.currentTarget.style.backgroundColor = "#f9fafb"
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isExpanded) e.currentTarget.style.backgroundColor = "#ffffff"
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: "20px", lineHeight: "1.2", flexShrink: 0, marginTop: "1px" }}>
+                              {item.icon}
+                            </span>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                <span
+                                  style={{
+                                    fontSize: "14px",
+                                    fontWeight: 600,
+                                    color: isExpanded ? "#6d28d9" : "#111827",
+                                    lineHeight: "1.3"
+                                  }}
+                                >
+                                  {item.title}
+                                </span>
+                                {item.badge && (
+                                  <span
+                                    style={{
+                                      fontSize: "10.5px",
+                                      fontWeight: 600,
+                                      padding: "1px 6px",
+                                      borderRadius: "4px",
+                                      backgroundColor: item.badgeBg || "#ede9fe",
+                                      color: item.badgeColor || "#7c3aed"
+                                    }}
+                                  >
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </div>
+                              {item.subtitle && (
+                                <span style={{ fontSize: "12px", color: "#6b7280", lineHeight: "1.4" }}>
+                                  {item.subtitle}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+                            {item.actionLink && (
+                              <a
+                                href={item.actionLink.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  fontSize: "11.5px",
+                                  fontWeight: 600,
+                                  color: "#7c3aed",
+                                  backgroundColor: "#f5f3ff",
+                                  padding: "4px 10px",
+                                  borderRadius: "6px",
+                                  textDecoration: "none",
+                                  border: "1px solid #ddd6fe",
+                                  transition: "background-color 0.15s ease"
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ede9fe")}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f5f3ff")}
+                              >
+                                {item.actionLink.label}
+                              </a>
+                            )}
+
+                            {/* Chevron Toggle Icon */}
+                            <div
+                              style={{
+                                width: "24px",
+                                height: "24px",
+                                borderRadius: "50%",
+                                backgroundColor: isExpanded ? "#ede9fe" : "#f3f4f6",
+                                color: isExpanded ? "#7c3aed" : "#6b7280",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "transform 0.2s ease, background-color 0.2s ease",
+                                transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)"
+                              }}
+                            >
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Accordion Body */}
+                        {isExpanded && (
+                          <div
+                            style={{
+                              padding: "16px 20px 20px 20px",
+                              borderTop: "1px solid #f3f4f6",
+                              fontSize: "13px",
+                              color: "#374151",
+                              lineHeight: "1.6",
+                              backgroundColor: "#ffffff"
+                            }}
+                          >
+                            {item.content}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: "10px",
+                      border: "1px solid #e5e7eb",
+                      padding: "36px 20px",
+                      textAlign: "center"
+                    }}
+                  >
+                    <div style={{ fontSize: "24px", marginBottom: "8px" }}>🔍</div>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: "#111827", marginBottom: "4px" }}>
+                      No guides or questions found
+                    </div>
+                    <p style={{ margin: "0 0 12px 0", fontSize: "12.5px", color: "#6b7280" }}>
+                      Try adjusting your search query or selecting &quot;All Topics&quot;.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setGuideSearchQuery("")
+                        setSelectedGuideCategory("all")
+                      }}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: "6px",
+                        backgroundColor: "#f5f3ff",
+                        border: "1px solid #ddd6fe",
+                        color: "#7c3aed",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer"
+                      }}
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
