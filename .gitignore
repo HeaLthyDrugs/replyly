@@ -28,6 +28,9 @@ dist/
 
 # plasmo
 .plasmo
+.pnpm-store
 
 # typescript
+*.tsbuildinfo
 .tsbuildinfo
+

@@ -1,0 +1,26 @@
+services:
+  # Development environment with hot reloading
+  dev:
+    build:
+      context: .
+      target: dev
+    container_name: replyly-dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.plasmo
+      - ./build:/app/build
+    ports:
+      - "1815:1815"
+    environment:
+      - NODE_ENV=development
+
+  # One-command production builder that extracts output to local build/ folder
+  build:
+    build:
+      context: .
+      target: builder
+    container_name: replyly-builder
+    volumes:
+      - ./build:/app/build
+    command: sh -c "pnpm build && pnpm package"

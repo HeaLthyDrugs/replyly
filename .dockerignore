@@ -1,0 +1,8 @@
+node_modules
+.pnpm-store
+build
+.plasmo
+.git
+.DS_Store
+*.log
+*.tsbuildinfo

@@ -1,10 +1,16 @@
-name: "Submit to Web Store"
+name: CI
+
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build:
+  build-test:
+    name: Build & Validate
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,15 +29,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build the extension
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build extension
         run: pnpm build
 
-      - name: Package the extension into a zip artifact
+      - name: Package extension
         run: pnpm package
-
-      - name: Browser Platform Publish
-        uses: PlasmoHQ/bpp@v3
-        with:
-          keys: ${{ secrets.SUBMIT_KEYS }}
-          artifact: build/chrome-mv3-prod.zip
-
