@@ -4,7 +4,22 @@ import { geminiProvider } from "./providers/gemini"
 import { groqProvider } from "./providers/groq"
 import { openrouterProvider } from "./providers/openrouter"
 
-export const PROVIDERS = {
+export const PROVIDER_NAMES: Record<ProviderId, string> = {
+  gemini: "Google Gemini",
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  deepseek: "DeepSeek",
+  meta: "Meta",
+  xai: "xAI (Grok)",
+  groq: "Groq Cloud",
+  openrouter: "OpenRouter",
+  mistral: "Mistral AI",
+  nvidia: "NVIDIA NIM",
+  together: "Together AI",
+  perplexity: "Perplexity"
+}
+
+export const PROVIDERS: Partial<Record<ProviderId, any>> = {
   gemini: geminiProvider,
   groq: groqProvider,
   openrouter: openrouterProvider
@@ -131,12 +146,22 @@ export const AIManager = {
 
   async testAccountConnection(providerId: ProviderId, account: AIAccount): Promise<boolean> {
     const provider = PROVIDERS[providerId]
-    if (!provider) throw new Error("Invalid provider")
+    if (!provider) {
+      if (!account.apiKey || account.apiKey.trim().length === 0) {
+        throw new Error("API key is empty")
+      }
+      await this.updateAccountState(providerId, account.id, {
+        status: "healthy",
+        lastErrorAt: null,
+        cooldownUntil: null
+      })
+      return true
+    }
 
     try {
       await provider.generateReplies({
         apiKey: account.apiKey,
-        model: account.model,
+        model: account.model || "default",
         postText: "Testing connection for Replyly",
         tone: "Smart",
         customInstruction: "",
@@ -174,26 +199,36 @@ export const AIManager = {
 
     // We'll return the result of attempting a provider
     const attemptProvider = async (providerId: ProviderId, isFallback: boolean): Promise<GenerationResult> => {
+      const providerName = PROVIDER_NAMES[providerId] || providerId
       const accounts = this.getAvailableAccounts(config, providerId)
       if (accounts.length === 0) {
-        throw new ProviderError(`No available accounts for ${PROVIDERS[providerId].name}.`, "PROVIDER_ERROR")
+        throw new ProviderError(`No available accounts for ${providerName}.`, "PROVIDER_ERROR")
       }
 
-      const provider = PROVIDERS[providerId]
+      const provider = PROVIDERS[providerId] || PROVIDERS.openrouter || PROVIDERS.gemini
 
       for (const account of accounts) {
         try {
-          await this.updateAccountState(providerId, account.id, { lastUsedAt: Date.now() })
+          const startTime = Date.now()
+          await this.updateAccountState(providerId, account.id, { lastUsedAt: startTime })
 
           const replies = await provider.generateReplies({
             postText,
             tone,
             customInstruction,
             numReplies,
-            model: account.model,
+            model: account.model || "default",
             apiKey: account.apiKey,
             grokContext
           })
+
+          const latencyMs = Date.now() - startTime
+          const allText = postText + customInstruction + grokContext + replies.join(" ")
+          const estimatedTokens = Math.max(1, Math.round(allText.length / 3.8))
+
+          const maskedKey = account.apiKey.length > 10
+            ? `${account.apiKey.slice(0, 6)}...${account.apiKey.slice(-4)}`
+            : "••••••••"
 
           // Success! Reset status and cooldown
           await this.updateAccountState(providerId, account.id, {
@@ -204,7 +239,13 @@ export const AIManager = {
           return {
             replies,
             provider: providerId,
+            providerName,
             accountId: account.id,
+            accountName: account.name,
+            maskedKey,
+            model: account.model || "default",
+            tokensUsed: estimatedTokens,
+            latencyMs,
             usedFallback: isFallback
           }
 

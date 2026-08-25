@@ -1,4 +1,16 @@
-export type ProviderId = 'gemini' | 'groq' | 'openrouter'
+export type ProviderId = 
+  | 'gemini' 
+  | 'openai' 
+  | 'anthropic' 
+  | 'deepseek' 
+  | 'meta' 
+  | 'xai' 
+  | 'groq' 
+  | 'openrouter' 
+  | 'mistral' 
+  | 'nvidia' 
+  | 'together' 
+  | 'perplexity'
 
 export type ErrorType = 
   | "INVALID_API_KEY" | "RATE_LIMITED" | "QUOTA_EXCEEDED" | "NETWORK_ERROR"
@@ -9,7 +21,7 @@ export interface AIAccount {
   id: string
   name: string
   apiKey: string
-  model: string
+  model?: string
   enabled: boolean
   status: "unknown" | "healthy" | "rate_limited" | "invalid"
   lastUsedAt: number | null
@@ -22,11 +34,7 @@ export interface ProviderConfig {
 }
 
 export interface AIConfig {
-  providers: {
-    gemini?: ProviderConfig
-    groq?: ProviderConfig
-    openrouter?: ProviderConfig
-  }
+  providers: Partial<Record<ProviderId, ProviderConfig>>
   activeProvider: ProviderId | null
   fallbackEnabled: boolean
   fallbackProviders: ProviderId[]
@@ -45,7 +53,13 @@ export interface GenerateRequest {
 export interface GenerationResult {
   replies: string[]
   provider: ProviderId
+  providerName?: string
   accountId: string
+  accountName?: string
+  maskedKey?: string
+  model?: string
+  tokensUsed?: number
+  latencyMs?: number
   usedFallback: boolean
 }
 

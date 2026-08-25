@@ -21,11 +21,23 @@ interface ReplyState {
   error?: string
 }
 
+export interface GenerationMetadata {
+  provider: string
+  providerName?: string
+  accountId?: string
+  accountName?: string
+  maskedKey?: string
+  model?: string
+  tokensUsed?: number
+  latencyMs?: number
+  usedFallback: boolean
+}
+
 interface CachedPostData {
   replies: ReplyState[] | null
   selectedTone: string
   customInstruction: string
-  generationInfo: { provider: string; usedFallback: boolean } | null
+  generationInfo: GenerationMetadata | null
   grokContext?: string | null
 }
 
@@ -73,7 +85,7 @@ export const ReplyModal: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationStep, setGenerationStep] = useState(0)
   const [replies, setReplies] = useState<ReplyState[] | null>(null)
-  const [generationInfo, setGenerationInfo] = useState<{ provider: string; usedFallback: boolean } | null>(null)
+  const [generationInfo, setGenerationInfo] = useState<GenerationMetadata | null>(null)
   const [error, setError] = useState<string | null>(null)
   
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -246,7 +258,17 @@ export const ReplyModal: React.FC = () => {
       }))
       
       setReplies(newReplies)
-      setGenerationInfo({ provider: result.provider, usedFallback: result.usedFallback })
+      setGenerationInfo({
+        provider: result.provider,
+        providerName: result.providerName,
+        accountId: result.accountId,
+        accountName: result.accountName,
+        maskedKey: result.maskedKey,
+        model: result.model,
+        tokensUsed: result.tokensUsed,
+        latencyMs: result.latencyMs,
+        usedFallback: result.usedFallback
+      })
     } catch (err: any) {
       if (err instanceof MissingApiKeyError) {
         setIsMissingKey(true)
@@ -828,16 +850,77 @@ export const ReplyModal: React.FC = () => {
           {/* Generated Replies */}
           {replies && !isGenerating && (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
                   Generated Replies
                 </div>
-                {generationInfo && (
-                  <div style={{ fontSize: "11.5px", color: generationInfo.usedFallback ? "#dc2626" : "#7c3aed", fontWeight: 700 }}>
-                    {generationInfo.usedFallback ? `Generated with ${generationInfo.provider} · fallback` : `Generated with ${generationInfo.provider}`}
-                  </div>
-                )}
               </div>
+
+              {/* Rich Generation Details Bar */}
+              {generationInfo && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    backgroundColor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    marginBottom: "14px",
+                    fontSize: "12px",
+                    color: "#475569"
+                  }}
+                >
+                  {/* Left: Key & Provider info */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "13px" }}>🔑</span>
+                      <span style={{ fontWeight: 700, color: "#0f172a" }}>{generationInfo.accountName || "Active Key"}</span>
+                      {generationInfo.maskedKey && (
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontFamily: "monospace" }}>({generationInfo.maskedKey})</span>
+                      )}
+                    </div>
+
+                    <span style={{ color: "#cbd5e1" }}>•</span>
+
+                    <span
+                      style={{
+                        padding: "1px 7px",
+                        borderRadius: "4px",
+                        backgroundColor: "#f1f5f9",
+                        fontSize: "11.5px",
+                        fontWeight: 600,
+                        color: "#334155"
+                      }}
+                    >
+                      {generationInfo.providerName || generationInfo.provider}
+                    </span>
+
+                    {generationInfo.usedFallback && (
+                      <span style={{ fontSize: "10.5px", fontWeight: 700, padding: "1px 6px", borderRadius: "4px", backgroundColor: "#fee2e2", color: "#dc2626" }}>
+                        Failover Active
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Right: Tokens & Speed */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    {generationInfo.tokensUsed !== undefined && (
+                      <span style={{ fontSize: "11.5px", color: "#64748b", fontWeight: 500 }}>
+                        ⚡ ~{generationInfo.tokensUsed} tokens
+                      </span>
+                    )}
+                    {generationInfo.latencyMs !== undefined && (
+                      <span style={{ fontSize: "11.5px", color: "#64748b", fontWeight: 500 }}>
+                        ⏱️ {(generationInfo.latencyMs / 1000).toFixed(1)}s
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {replies.map((reply) => {
                   const isAnyPosting = postingId !== null
