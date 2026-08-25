@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { AIManager, DEFAULT_CONFIG } from "./lib/ai/manager"
 import type { AIConfig, ProviderId, AIAccount } from "./lib/ai/types"
-import { RlyLogoIcon } from "./components/Logo"
+import { REPLYLY_LOGO_DATA_URI, RlyLogoIcon } from "./components/Logo"
 import { GUIDE_CATEGORIES, GUIDE_ITEMS, type GuideCategory, type GuideItem } from "./lib/guidesData"
 
 export type SettingsTab = "keys" | "preferences" | "guides"
@@ -95,7 +95,7 @@ const TONES = [
   { value: "Contrarian", label: "Contrarian", emoji: "🤔", desc: "Respectful alternate perspective" }
 ]
 
-const RLY_FAVICON_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAADb0lEQVR4nO1WW0iTYRi28K6DYjeaWBcFgoIJWc6c5rFs0yzdhUJdSBCEFF6U8zRtE0/plMCIKDLocKGZmzdlkUuiwAsVDBsdNHXLnU/+5mFO33i/+f0bhexgIoQP/PD9/354nv99n/d9FhCwjW34iJ07AgOjw84Kzse2dxQl9CqKOHLFuZj2jqjQHAH+tqnk4cGxcddSB5WSHBNIsk0g5htBzDPCzTN4GaCY+1G5f29s3KaQHwzhcEU8FbMeeU2WAWpO66Es/QdzIDieuyXk1af0UJ2pA2HqBBMRfPzfiPCVXJSBlxaEKeNMRNAGRfhLXpWuhao0LZQmf/dfhD/kDXl6qM3WEfKqVA2I0jUgzp3wXQS6Hcnr88xw76oVZG1zIGtloLNuFiR8J3lDngFaL5pAwtez5CsOAPUXO1RnaKAyRQOjb+cBcad4ignbfcS76cBZpqMmb5uDPzHYO0++fOT1Arl/cctGyo5fzphWyDN5qw0elBjJGUW1FOjg8tEBpVd7ApcMLbtsTcD4iB1kUoacLVoHKftIn0sA7Xl3o5U8+2VdAe3EMjm/e8JAOVcNZVw1RO7jCzwKwA1He45lR4y9X4T7JRaXgEwdDK8J6G6ysT3Hsk+P2dlqzZocIM6aIeRliSrgH27t8CgA1ys1HBXgDuWHRdJzlwArS16ZMgN3rxjYd7vqzCy58IQKCqM7FZ4FcOQK6nZadoqpT3ZoyDeQng/3OQ2GZafkFSdnoCL5J/t+k0DDkgsTVFAY5YUADBY6aj3SWWdPbU5zLTCr0FxgID0ffuUuwEVenuQmIF/DkpdypoF3SOq5BZhqdM57WpwC0HDjQ0vkPNq/QHpOBUyOLsHQy3kYeMoQcjQcRWOehiUvjZ+GyBCeZxPiqGCq4aj1NDsFYL9vFxlheWmV3D8SmlkBFGaNg3W7S8AMS34ppt+7MURgpGKq4ZKRXjBCXa6elP3NQ6cnepqtUJuthWfVZnheb4Guegs8LjeyhtNPLsPS/CrUZKoJeUncZyZ0V4xvMY2RiqnmvtvR7S0F+r96Tr+cGk6UpgZxlos8fM8x//IAIxVTzX3OPZG793xD5KyIoONcTLUtIXcXcSPpG7Ml5O4irid+ZbaEnAIjFVNtPXIcNZ/d7itwljHVMFhwt+N6xQ2HS2bT/5Zv47/Eb4tqgGNC1bwjAAAAAElFTkSuQmCC"
+const RLY_FAVICON_DATA_URI = REPLYLY_LOGO_DATA_URI
 
 function Switch({
   checked,
