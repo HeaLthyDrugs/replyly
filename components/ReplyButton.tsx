@@ -50,7 +50,7 @@ export const ReplyButton: React.FC<ReplyButtonProps> = ({
         gap: "4px"
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.color = "#8b5cf6"
+        e.currentTarget.style.color = "#E76F51"
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.color = "rgb(113, 118, 123)"

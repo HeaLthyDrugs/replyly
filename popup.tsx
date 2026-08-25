@@ -287,7 +287,7 @@ function IndexPopup() {
               padding: "6px 12px",
               borderRadius: "8px",
               border: hasApiKey ? "1px solid #cfd9de" : "none",
-              backgroundColor: hasApiKey ? "#ffffff" : "#7c3aed",
+              backgroundColor: hasApiKey ? "#ffffff" : "#E76F51",
               color: hasApiKey ? "#0f1419" : "#ffffff",
               fontWeight: 700,
               fontSize: "12px",
@@ -298,14 +298,14 @@ function IndexPopup() {
               if (hasApiKey) {
                 e.currentTarget.style.backgroundColor = "#f8fafc"
               } else {
-                e.currentTarget.style.backgroundColor = "#6d28d9"
+                e.currentTarget.style.backgroundColor = "#D65A3C"
               }
             }}
             onMouseLeave={(e) => {
               if (hasApiKey) {
                 e.currentTarget.style.backgroundColor = "#ffffff"
               } else {
-                e.currentTarget.style.backgroundColor = "#7c3aed"
+                e.currentTarget.style.backgroundColor = "#E76F51"
               }
             }}
           >

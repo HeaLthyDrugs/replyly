@@ -119,7 +119,7 @@ function Switch({
       style={{
         width: "36px",
         height: "20px",
-        backgroundColor: checked ? "#7c3aed" : "#e5e7eb",
+        backgroundColor: checked ? "#E76F51" : "#e5e7eb",
         borderRadius: "9999px",
         border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
@@ -612,7 +612,7 @@ export function Options() {
           minHeight: "100vh",
           backgroundColor: "#ffffff",
           fontFamily: "system-ui, sans-serif",
-          color: "#7c3aed",
+          color: "#E76F51",
           fontWeight: 600
         }}
       >
@@ -637,8 +637,8 @@ export function Options() {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         input:focus, textarea:focus, select:focus {
           outline: none;
-          border-color: #7c3aed !important;
-          box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15) !important;
+          border-color: #E76F51 !important;
+          box-shadow: 0 0 0 2px rgba(231, 111, 81, 0.15) !important;
         }
       `}</style>
 
@@ -648,24 +648,25 @@ export function Options() {
           margin: "0 auto",
           minHeight: "100vh",
           backgroundColor: "#ffffff",
-          borderLeft: "1px solid #e5e7eb",
-          borderRight: "1px solid #e5e7eb",
+          borderLeft: "1px solid #f3f4f6",
+          borderRight: "1px solid #f3f4f6",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column"
         }}
       >
-        <div style={{ padding: "36px 32px 0 32px" }}>
+        <div style={{ padding: "24px 32px 0 32px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <RlyLogoIcon size={28} />
-                <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "#111827", letterSpacing: "-0.5px" }}>
-                  Settings
+                <RlyLogoIcon size={32} />
+                <h1 style={{ margin: 0, fontSize: "19px", fontWeight: 800, color: "#111827", letterSpacing: "-0.3px" }}>
+                  Replyly Settings
                 </h1>
               </div>
-              <p style={{ margin: "5px 0 0", fontSize: "13.5px", color: "#6b7280", lineHeight: "1.5" }}>
-                Manage your API keys, reply preferences, and helpful guides.
+              <p style={{ margin: "5px 0 0", fontSize: "13px", color: "#6b7280", lineHeight: "1.5" }}>
+                Manage your AI API keys, defaults, and usage guides.
               </p>
             </div>
 
@@ -693,7 +694,7 @@ export function Options() {
                   padding: 0,
                   fontSize: "12px",
                   fontWeight: 600,
-                  color: isExtensionEnabled ? "#7c3aed" : "#9ca3af"
+                  color: isExtensionEnabled ? "#E76F51" : "#9ca3af"
                 }}
               >
                 <span
@@ -701,7 +702,7 @@ export function Options() {
                     width: "7px",
                     height: "7px",
                     borderRadius: "50%",
-                    backgroundColor: isExtensionEnabled ? "#7c3aed" : "#9ca3af"
+                    backgroundColor: isExtensionEnabled ? "#E76F51" : "#9ca3af"
                   }}
                 />
                 {isExtensionEnabled ? "Active" : "Disabled"}
@@ -736,8 +737,8 @@ export function Options() {
                   padding: "12px 2px",
                   background: "none",
                   border: "none",
-                  borderBottom: isActive ? "2px solid #7c3aed" : "2px solid transparent",
-                  color: isActive ? "#7c3aed" : "#6b7280",
+                  borderBottom: isActive ? "2px solid #E76F51" : "2px solid transparent",
+                  color: isActive ? "#E76F51" : "#6b7280",
                   fontWeight: 500,
                   fontSize: "13.5px",
                   cursor: "pointer",
@@ -763,8 +764,8 @@ export function Options() {
                       fontWeight: 500,
                       padding: "1px 7px",
                       borderRadius: "9999px",
-                      backgroundColor: isActive ? "#f5f3ff" : "#f3f4f6",
-                      color: isActive ? "#7c3aed" : "#6b7280"
+                      backgroundColor: isActive ? "#FFF3EE" : "#f3f4f6",
+                      color: isActive ? "#E76F51" : "#6b7280"
                     }}
                   >
                     {tab.count}
@@ -807,7 +808,7 @@ export function Options() {
                   <button
                     onClick={() => startAdding("gemini")}
                     style={{
-                      backgroundColor: "#7c3aed",
+                      backgroundColor: "#E76F51",
                       color: "#ffffff",
                       border: "none",
                       padding: "7px 14px",
@@ -821,8 +822,8 @@ export function Options() {
                       transition: "background-color 0.15s ease",
                       flexShrink: 0
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#6d28d9")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#7c3aed")}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#D65A3C")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#E76F51")}
                   >
                     <span style={{ fontSize: "14px", lineHeight: "1" }}>+</span>
                     <span>Add Key</span>
@@ -861,7 +862,7 @@ export function Options() {
                               style={{
                                 borderBottom: "1px solid #f3f4f6",
                                 transition: "background-color 0.15s ease",
-                                backgroundColor: isPrimary ? "#faf5ff" : "transparent"
+                                backgroundColor: isPrimary ? "#FFF8F5" : "transparent"
                               }}
                               onMouseEnter={(e) => {
                                 if (!isPrimary) e.currentTarget.style.backgroundColor = "#f9fafb"
@@ -875,7 +876,7 @@ export function Options() {
                                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                     <span style={{ fontWeight: 600, color: "#111827" }}>{account.name}</span>
                                     {isPrimary && (
-                                      <span style={{ fontSize: "10px", fontWeight: 600, padding: "1px 5px", borderRadius: "4px", backgroundColor: "#ede9fe", color: "#7c3aed" }}>
+                                      <span style={{ fontSize: "10px", fontWeight: 600, padding: "1px 5px", borderRadius: "4px", backgroundColor: "#FFF3EE", color: "#E76F51" }}>
                                         Default
                                       </span>
                                     )}
@@ -1065,9 +1066,9 @@ export function Options() {
                               <button
                                 onClick={() => startAdding("gemini")}
                                 style={{
-                                  backgroundColor: "#f5f3ff",
-                                  border: "1px solid #ddd6fe",
-                                  color: "#7c3aed",
+                                  backgroundColor: "#FFF3EE",
+                                  border: "1px solid #FCD5BA",
+                                  color: "#E76F51",
                                   padding: "5px 12px",
                                   borderRadius: "6px",
                                   fontSize: "12px",
@@ -1151,10 +1152,10 @@ export function Options() {
                               checked={isChecked && !isPrimary}
                               disabled={isPrimary || !hasAccounts}
                               onChange={() => toggleFallbackProvider(id)}
-                              style={{ width: "13px", height: "13px", accentColor: "#7c3aed" }}
+                              style={{ width: "13px", height: "13px", accentColor: "#E76F51" }}
                             />
                             <span>{meta?.name || id}</span>
-                            {isPrimary && <span style={{ fontSize: "10px", color: "#7c3aed" }}>(Primary)</span>}
+                            {isPrimary && <span style={{ fontSize: "10px", color: "#E76F51" }}>(Primary)</span>}
                             {!hasAccounts && <span style={{ fontSize: "10px", color: "#9ca3af" }}>(No key)</span>}
                           </label>
                         )
@@ -1189,8 +1190,8 @@ export function Options() {
                         style={{
                           padding: "10px 12px",
                           borderRadius: "8px",
-                          border: isSelected ? "1.5px solid #7c3aed" : "1px solid #e5e7eb",
-                          backgroundColor: isSelected ? "#faf5ff" : "#ffffff",
+                          border: isSelected ? "1.5px solid #E76F51" : "1px solid #e5e7eb",
+                          backgroundColor: isSelected ? "#FFF8F5" : "#ffffff",
                           cursor: "pointer",
                           transition: "all 0.15s ease"
                         }}
@@ -1207,7 +1208,7 @@ export function Options() {
                           }
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 600, color: isSelected ? "#7c3aed" : "#111827" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 600, color: isSelected ? "#E76F51" : "#111827" }}>
                           <span>{t.emoji}</span>
                           <span>{t.label}</span>
                         </div>
@@ -1241,11 +1242,11 @@ export function Options() {
                         style={{
                           padding: "7px 16px",
                           borderRadius: "8px",
-                          border: isSelected ? "1.5px solid #7c3aed" : "1px solid #e5e7eb",
-                          backgroundColor: isSelected ? "#faf5ff" : "#ffffff",
+                          border: isSelected ? "1.5px solid #E76F51" : "1px solid #e5e7eb",
+                          backgroundColor: isSelected ? "#FFF8F5" : "#ffffff",
                           fontSize: "13px",
                           fontWeight: 500,
-                          color: isSelected ? "#7c3aed" : "#374151",
+                          color: isSelected ? "#E76F51" : "#374151",
                           cursor: "pointer",
                           transition: "all 0.15s ease"
                         }}
@@ -1340,9 +1341,9 @@ export function Options() {
                         gap: "6px",
                         padding: "6px 12px",
                         borderRadius: "20px",
-                        border: isSelected ? "1.5px solid #7c3aed" : "1px solid #e5e7eb",
-                        backgroundColor: isSelected ? "#f5f3ff" : "#ffffff",
-                        color: isSelected ? "#7c3aed" : "#4b5563",
+                        border: isSelected ? "1.5px solid #E76F51" : "1px solid #e5e7eb",
+                        backgroundColor: isSelected ? "#FFF3EE" : "#ffffff",
+                        color: isSelected ? "#E76F51" : "#4b5563",
                         fontSize: "12.5px",
                         fontWeight: isSelected ? 600 : 500,
                         cursor: "pointer",
@@ -1369,8 +1370,8 @@ export function Options() {
                           fontWeight: 600,
                           padding: "1px 6px",
                           borderRadius: "9999px",
-                          backgroundColor: isSelected ? "#ede9fe" : "#f3f4f6",
-                          color: isSelected ? "#7c3aed" : "#6b7280"
+                          backgroundColor: isSelected ? "#FCD5BA" : "#f3f4f6",
+                          color: isSelected ? "#E76F51" : "#6b7280"
                         }}
                       >
                         {count}
@@ -1482,8 +1483,8 @@ export function Options() {
                         style={{
                           backgroundColor: "#ffffff",
                           borderRadius: "10px",
-                          border: isExpanded ? "1px solid #ddd6fe" : "1px solid #e5e7eb",
-                          boxShadow: isExpanded ? "0 2px 8px rgba(124, 58, 237, 0.06)" : "0 1px 2px rgba(0,0,0,0.02)",
+                          border: isExpanded ? "1px solid #FCD5BA" : "1px solid #e5e7eb",
+                          boxShadow: isExpanded ? "0 2px 8px rgba(231, 111, 81, 0.08)" : "0 1px 2px rgba(0,0,0,0.02)",
                           overflow: "hidden",
                           transition: "all 0.15s ease"
                         }}
@@ -1499,7 +1500,7 @@ export function Options() {
                             justifyContent: "space-between",
                             gap: "12px",
                             userSelect: "none",
-                            backgroundColor: isExpanded ? "#faf8ff" : "#ffffff",
+                            backgroundColor: isExpanded ? "#FFF8F5" : "#ffffff",
                             transition: "background-color 0.15s ease"
                           }}
                           onMouseEnter={(e) => {
@@ -1519,7 +1520,7 @@ export function Options() {
                                   style={{
                                     fontSize: "14px",
                                     fontWeight: 600,
-                                    color: isExpanded ? "#6d28d9" : "#111827",
+                                    color: isExpanded ? "#D65A3C" : "#111827",
                                     lineHeight: "1.3"
                                   }}
                                 >
@@ -1532,8 +1533,8 @@ export function Options() {
                                       fontWeight: 600,
                                       padding: "1px 6px",
                                       borderRadius: "4px",
-                                      backgroundColor: item.badgeBg || "#ede9fe",
-                                      color: item.badgeColor || "#7c3aed"
+                                      backgroundColor: item.badgeBg || "#FFF3EE",
+                                      color: item.badgeColor || "#E76F51"
                                     }}
                                   >
                                     {item.badge}
@@ -1558,16 +1559,16 @@ export function Options() {
                                 style={{
                                   fontSize: "11.5px",
                                   fontWeight: 600,
-                                  color: "#7c3aed",
-                                  backgroundColor: "#f5f3ff",
+                                  color: "#E76F51",
+                                  backgroundColor: "#FFF3EE",
                                   padding: "4px 10px",
                                   borderRadius: "6px",
                                   textDecoration: "none",
-                                  border: "1px solid #ddd6fe",
+                                  border: "1px solid #FCD5BA",
                                   transition: "background-color 0.15s ease"
                                 }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ede9fe")}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f5f3ff")}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#FCD5BA")}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFF3EE")}
                               >
                                 {item.actionLink.label}
                               </a>
@@ -1579,8 +1580,8 @@ export function Options() {
                                 width: "24px",
                                 height: "24px",
                                 borderRadius: "50%",
-                                backgroundColor: isExpanded ? "#ede9fe" : "#f3f4f6",
-                                color: isExpanded ? "#7c3aed" : "#6b7280",
+                                backgroundColor: isExpanded ? "#FFF3EE" : "#f3f4f6",
+                                color: isExpanded ? "#E76F51" : "#6b7280",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -1638,9 +1639,9 @@ export function Options() {
                       style={{
                         padding: "6px 14px",
                         borderRadius: "6px",
-                        backgroundColor: "#f5f3ff",
-                        border: "1px solid #ddd6fe",
-                        color: "#7c3aed",
+                        backgroundColor: "#FFF3EE",
+                        border: "1px solid #FCD5BA",
+                        color: "#E76F51",
                         fontSize: "12px",
                         fontWeight: 600,
                         cursor: "pointer"
@@ -1760,7 +1761,7 @@ export function Options() {
                       href={PROVIDER_METADATA[editingProvider].link}
                       target="_blank"
                       rel="noreferrer"
-                      style={{ fontSize: "11px", color: "#7c3aed", fontWeight: 600, textDecoration: "none" }}
+                      style={{ fontSize: "11px", color: "#E76F51", fontWeight: 600, textDecoration: "none" }}
                     >
                       Get API Key on {PROVIDER_METADATA[editingProvider].portalName} ↗
                     </a>
@@ -1824,7 +1825,7 @@ export function Options() {
                     padding: "7px 16px",
                     borderRadius: "7px",
                     border: "none",
-                    backgroundColor: "#7c3aed",
+                    backgroundColor: "#E76F51",
                     fontSize: "12.5px",
                     fontWeight: 600,
                     color: "#ffffff",
@@ -1918,7 +1919,7 @@ export function Options() {
               borderRadius: "9999px",
               fontSize: "13px",
               fontWeight: 500,
-              backgroundColor: statusType === "error" ? "#dc2626" : statusType === "success" ? "#16a34a" : "#7c3aed",
+              backgroundColor: statusType === "error" ? "#dc2626" : statusType === "success" ? "#16a34a" : "#E76F51",
               color: "#ffffff",
               boxShadow: "0 10px 25px rgba(0,0,0,0.18)",
               zIndex: 9999,

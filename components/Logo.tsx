@@ -25,8 +25,8 @@ export const ReplylyIcon: React.FC<{ size?: number; style?: React.CSSProperties 
     >
       <defs>
         <linearGradient id="replyly-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8B5CF6" />
-          <stop offset="100%" stopColor="#6D28D9" />
+          <stop offset="0%" stopColor="#F4A261" />
+          <stop offset="100%" stopColor="#D65A3C" />
         </linearGradient>
       </defs>
       <g transform="translate(50, 50) rotate(45)">
@@ -61,8 +61,8 @@ export const RlyLogoIcon: React.FC<{ size?: number; style?: React.CSSProperties 
     >
       <defs>
         <linearGradient id="rly-icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8B5CF6" />
-          <stop offset="100%" stopColor="#6D28D9" />
+          <stop offset="0%" stopColor="#F4A261" />
+          <stop offset="100%" stopColor="#D65A3C" />
         </linearGradient>
       </defs>
       <g transform="translate(50, 50)">

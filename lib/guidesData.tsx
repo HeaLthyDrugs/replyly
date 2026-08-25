@@ -61,7 +61,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
         <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 16px", marginBottom: "12px" }}>
           <div style={{ fontWeight: 600, fontSize: "13px", color: "#111827", marginBottom: "8px" }}>Step-by-Step Setup:</div>
           <ol style={{ margin: 0, paddingLeft: "18px", color: "#4b5563", fontSize: "13px", lineHeight: "1.8" }}>
-            <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 600 }}>Google AI Studio (aistudio.google.com)</a>.</li>
+            <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: "#E76F51", fontWeight: 600 }}>Google AI Studio (aistudio.google.com)</a>.</li>
             <li>Sign in using any regular Google / Gmail account.</li>
             <li>Click the blue <strong>&quot;Create API Key&quot;</strong> button.</li>
             <li>Select an existing Google Cloud project or click <em>&quot;Create key in new project&quot;</em>.</li>
@@ -97,7 +97,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
         <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 16px", marginBottom: "12px" }}>
           <div style={{ fontWeight: 600, fontSize: "13px", color: "#111827", marginBottom: "8px" }}>Step-by-Step Setup:</div>
           <ol style={{ margin: 0, paddingLeft: "18px", color: "#4b5563", fontSize: "13px", lineHeight: "1.8" }}>
-            <li>Go to the <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 600 }}>Groq Console</a>.</li>
+            <li>Go to the <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: "#E76F51", fontWeight: 600 }}>Groq Console</a>.</li>
             <li>Sign in with GitHub or Google.</li>
             <li>Click <strong>&quot;Create API Key&quot;</strong> in the top right.</li>
             <li>Enter a name such as &quot;Replyly Key&quot; and click <strong>Submit</strong>.</li>
@@ -118,8 +118,8 @@ export const GUIDE_ITEMS: GuideItem[] = [
     title: "How to configure OpenRouter (Access 100+ Models)",
     subtitle: "Claude 3.5, DeepSeek, GPT-4o & OSS models with a single API key",
     badge: "100+ Models",
-    badgeBg: "#f5f3ff",
-    badgeColor: "#7c3aed",
+    badgeBg: "#FFF3EE",
+    badgeColor: "#E76F51",
     actionLink: {
       url: "https://openrouter.ai/keys",
       label: "OpenRouter Keys ↗"
@@ -133,7 +133,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
         <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 16px", marginBottom: "12px" }}>
           <div style={{ fontWeight: 600, fontSize: "13px", color: "#111827", marginBottom: "8px" }}>Step-by-Step Setup:</div>
           <ol style={{ margin: 0, paddingLeft: "18px", color: "#4b5563", fontSize: "13px", lineHeight: "1.8" }}>
-            <li>Navigate to <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 600 }}>OpenRouter Keys</a>.</li>
+            <li>Navigate to <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" style={{ color: "#E76F51", fontWeight: 600 }}>OpenRouter Keys</a>.</li>
             <li>Create an account or connect your crypto/GitHub/Google wallet.</li>
             <li>Click <strong>&quot;Create Key&quot;</strong>, set a credit limit if desired, and copy your key (<code style={{ backgroundColor: "#f3f4f6", padding: "1px 5px", borderRadius: "4px", fontSize: "12px" }}>sk-or-v1-...</code>).</li>
             <li>Add the key to Replyly under <strong>API Keys -&gt; OpenRouter</strong>.</li>
@@ -163,7 +163,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
         </p>
         <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 16px", marginBottom: "12px" }}>
           <ol style={{ margin: 0, paddingLeft: "18px", color: "#4b5563", fontSize: "13px", lineHeight: "1.8" }}>
-            <li>Visit <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 600 }}>OpenAI API Keys</a>.</li>
+            <li>Visit <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" style={{ color: "#E76F51", fontWeight: 600 }}>OpenAI API Keys</a>.</li>
             <li>Log in with your OpenAI account.</li>
             <li>Click <strong>&quot;Create new secret key&quot;</strong> and copy it (<code style={{ backgroundColor: "#f3f4f6", padding: "1px 5px", borderRadius: "4px", fontSize: "12px" }}>sk-proj-...</code>).</li>
             <li>Ensure you have a small prepaid credit balance in your OpenAI Billing settings.</li>
@@ -191,7 +191,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
         </p>
         <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 16px", marginBottom: "12px" }}>
           <ol style={{ margin: 0, paddingLeft: "18px", color: "#4b5563", fontSize: "13px", lineHeight: "1.8" }}>
-            <li>Visit the <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 600 }}>Anthropic Console</a>.</li>
+            <li>Visit the <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" style={{ color: "#E76F51", fontWeight: 600 }}>Anthropic Console</a>.</li>
             <li>Create an account or log in.</li>
             <li>Click <strong>&quot;Create Key&quot;</strong>, name it &quot;Replyly&quot;, and copy the key (<code style={{ backgroundColor: "#f3f4f6", padding: "1px 5px", borderRadius: "4px", fontSize: "12px" }}>sk-ant-...</code>).</li>
             <li>Paste the key into Replyly under <strong>Anthropic (Claude)</strong>.</li>
@@ -218,7 +218,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
         </p>
         <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 16px" }}>
           <ol style={{ margin: 0, paddingLeft: "18px", color: "#4b5563", fontSize: "13px", lineHeight: "1.8" }}>
-            <li>Go to <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer" style={{ color: "#7c3aed", fontWeight: 600 }}>DeepSeek Platform</a>.</li>
+            <li>Go to <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer" style={{ color: "#E76F51", fontWeight: 600 }}>DeepSeek Platform</a>.</li>
             <li>Sign in and top up a balance (DeepSeek offers initial free trial credits upon sign-up).</li>
             <li>Create a new API Key and copy it.</li>
             <li>Paste into Replyly under <strong>DeepSeek</strong>.</li>
@@ -250,7 +250,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
             <div key={item.name} style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 12px" }}>
               <div style={{ fontWeight: 600, fontSize: "13px", color: "#111827" }}>{item.name}</div>
               <div style={{ fontSize: "11.5px", color: "#6b7280", margin: "2px 0 6px 0" }}>{item.desc}</div>
-              <a href={item.url} target="_blank" rel="noreferrer" style={{ fontSize: "11.5px", color: "#7c3aed", fontWeight: 600, textDecoration: "none" }}>
+              <a href={item.url} target="_blank" rel="noreferrer" style={{ fontSize: "11.5px", color: "#E76F51", fontWeight: 600, textDecoration: "none" }}>
                 Get Key ↗
               </a>
             </div>

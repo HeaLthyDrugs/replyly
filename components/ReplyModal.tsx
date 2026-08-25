@@ -535,18 +535,18 @@ export const ReplyModal: React.FC = () => {
                     disabled={isGrokLoading}
                     style={{
                       width: "100%", padding: "10px 16px", borderRadius: "10px",
-                      border: "1.5px dashed #c4b5fd", backgroundColor: "#faf5ff",
-                      color: "#7c3aed", cursor: "pointer", fontSize: "13px", fontWeight: 700,
+                      border: "1.5px dashed #FCD5BA", backgroundColor: "#FFF8F5",
+                      color: "#E76F51", cursor: "pointer", fontSize: "13px", fontWeight: 700,
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
                       transition: "all 0.15s ease"
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#7c3aed"
-                      e.currentTarget.style.backgroundColor = "#f5f3ff"
+                      e.currentTarget.style.borderColor = "#E76F51"
+                      e.currentTarget.style.backgroundColor = "#FFF3EE"
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#c4b5fd"
-                      e.currentTarget.style.backgroundColor = "#faf5ff"
+                      e.currentTarget.style.borderColor = "#FCD5BA"
+                      e.currentTarget.style.backgroundColor = "#FFF8F5"
                     }}
                   >
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -569,7 +569,7 @@ export const ReplyModal: React.FC = () => {
                 }}>
                   <div style={{
                     width: "14px", height: "14px", border: "2px solid #e2e8f0",
-                    borderTopColor: "#7c3aed", borderRadius: "50%",
+                    borderTopColor: "#E76F51", borderRadius: "50%",
                     animation: "replyly-spin 1s linear infinite"
                   }} />
                   <span style={{ color: "#64748b", fontSize: "13px", fontWeight: 600 }}>Analyzing with Grok in real-time...</span>
@@ -588,7 +588,7 @@ export const ReplyModal: React.FC = () => {
                   <button
                     onClick={handleGrokContext}
                     style={{
-                      background: "transparent", border: "none", color: "#7c3aed",
+                      background: "transparent", border: "none", color: "#E76F51",
                       cursor: "pointer", fontSize: "12px", fontWeight: 700, padding: "2px 6px",
                       whiteSpace: "nowrap"
                     }}
@@ -601,8 +601,8 @@ export const ReplyModal: React.FC = () => {
               {/* Grok context preview with Live Auto-Refresh */}
               {grokContext && (
                 <div style={{
-                  borderRadius: "10px", border: "1px solid #ddd6fe",
-                  backgroundColor: "#f5f3ff", overflow: "hidden"
+                  borderRadius: "10px", border: "1px solid #FCD5BA",
+                  backgroundColor: "#FFF8F5", overflow: "hidden"
                 }}>
                   <div
                     style={{
@@ -618,11 +618,11 @@ export const ReplyModal: React.FC = () => {
                       {isGrokLoading || isGrokStreaming ? (
                         <>
                           <div style={{
-                            width: "12px", height: "12px", border: "2px solid #ddd6fe",
-                            borderTopColor: "#7c3aed", borderRadius: "50%",
+                            width: "12px", height: "12px", border: "2px solid #FCD5BA",
+                            borderTopColor: "#E76F51", borderRadius: "50%",
                             animation: "replyly-spin 0.8s linear infinite"
                           }} />
-                          <span style={{ fontSize: "13px", fontWeight: 700, color: "#7c3aed" }}>
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: "#E76F51" }}>
                             Grok is thinking & streaming context...
                           </span>
                         </>
@@ -645,7 +645,7 @@ export const ReplyModal: React.FC = () => {
                         onClick={handleGrokContext}
                         disabled={isGrokLoading}
                         style={{
-                          background: "transparent", border: "none", color: "#7c3aed",
+                          background: "transparent", border: "none", color: "#E76F51",
                           fontSize: "12px", fontWeight: 700, cursor: isGrokLoading ? "not-allowed" : "pointer",
                           display: "flex", alignItems: "center", gap: "3px", padding: 0
                         }}
@@ -679,7 +679,7 @@ export const ReplyModal: React.FC = () => {
                       padding: "0 12px 10px", fontSize: "12px", lineHeight: "1.5",
                       color: "#334155", maxHeight: "120px", overflowY: "auto", overflowX: "hidden",
                       wordBreak: "break-word", overflowWrap: "anywhere",
-                      borderTop: "1px solid #ddd6fe"
+                      borderTop: "1px solid #FCD5BA"
                     }}>
                       <div style={{ paddingTop: "8px", whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere" }}>{grokContext}</div>
                     </div>
@@ -708,8 +708,8 @@ export const ReplyModal: React.FC = () => {
               }}
               onMouseEnter={(e) => {
                 if (!isGenerating) {
-                  e.currentTarget.style.borderColor = "#7c3aed"
-                  e.currentTarget.style.backgroundColor = "#f5f3ff"
+                  e.currentTarget.style.borderColor = "#E76F51"
+                  e.currentTarget.style.backgroundColor = "#FFF3EE"
                 }
               }}
               onMouseLeave={(e) => {
@@ -726,7 +726,7 @@ export const ReplyModal: React.FC = () => {
                   <span style={{ fontSize: "11px", color: "#64748b" }}>{activeTone.description}</span>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#7c3aed", fontSize: "12px", fontWeight: 700 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#E76F51", fontSize: "12px", fontWeight: 700 }}>
                 <span>Change</span>
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                   <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
@@ -753,7 +753,7 @@ export const ReplyModal: React.FC = () => {
                 transition: "border-color 0.15s ease",
                 opacity: isGenerating ? 0.75 : 1
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = "#7c3aed"}
+              onFocus={(e) => e.currentTarget.style.borderColor = "#E76F51"}
               onBlur={(e) => e.currentTarget.style.borderColor = "#cbd5e1"}
             />
           </div>
@@ -764,19 +764,19 @@ export const ReplyModal: React.FC = () => {
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "10px 14px", borderRadius: "10px",
-                backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe"
+                backgroundColor: "#FFF3EE", border: "1px solid #FCD5BA"
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <div style={{
                     width: "8px", height: "8px", borderRadius: "50%",
-                    backgroundColor: "#7c3aed",
-                    boxShadow: "0 0 8px #7c3aed",
+                    backgroundColor: "#E76F51",
+                    boxShadow: "0 0 8px #E76F51",
                     animation: "rly-pulse 1.4s infinite"
                   }} />
                   <span
                     key={generationStep}
                     style={{
-                      fontSize: "13px", fontWeight: 700, color: "#6d28d9",
+                      fontSize: "13px", fontWeight: 700, color: "#D65A3C",
                       animation: "rly-fade-in 0.3s ease"
                     }}
                   >
@@ -785,9 +785,9 @@ export const ReplyModal: React.FC = () => {
                 </div>
                 <span style={{
                   fontSize: "11px", fontWeight: 800,
-                  backgroundColor: "#ffffff", color: "#7c3aed",
+                  backgroundColor: "#ffffff", color: "#E76F51",
                   padding: "2px 8px", borderRadius: "9999px",
-                  border: "1px solid #ddd6fe"
+                  border: "1px solid #FCD5BA"
                 }}>
                   {activeTone.emoji} {activeTone.label}
                 </span>
@@ -811,7 +811,7 @@ export const ReplyModal: React.FC = () => {
                 >
                   <div style={{
                     position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                    background: "linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.08) 50%, transparent 100%)",
+                    background: "linear-gradient(90deg, transparent 0%, rgba(231, 111, 81, 0.08) 50%, transparent 100%)",
                     backgroundSize: "200% 100%",
                     animation: `rly-shimmer 1.6s infinite ease-in-out ${idx * 0.2}s`
                   }} />
@@ -839,7 +839,7 @@ export const ReplyModal: React.FC = () => {
                     </div>
                     <div style={{ display: "flex", gap: "6px" }}>
                       <div style={{ height: "24px", width: "60px", backgroundColor: "#f8fafc", borderRadius: "9999px", border: "1px solid #f1f5f9" }} />
-                      <div style={{ height: "24px", width: "80px", backgroundColor: "#f5f3ff", borderRadius: "9999px", border: "1px solid #ddd6fe" }} />
+                      <div style={{ height: "24px", width: "80px", backgroundColor: "#FFF3EE", borderRadius: "9999px", border: "1px solid #FCD5BA" }} />
                     </div>
                   </div>
                 </div>
@@ -932,10 +932,10 @@ export const ReplyModal: React.FC = () => {
                     }}>
                       
                       {reply.isRegenerating ? (
-                        <div style={{ padding: "16px 0", textAlign: "center", color: "#7c3aed", fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                        <div style={{ padding: "16px 0", textAlign: "center", color: "#E76F51", fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                           <div style={{
-                            width: "14px", height: "14px", border: "2px solid #ddd6fe",
-                            borderTopColor: "#7c3aed", borderRadius: "50%",
+                            width: "14px", height: "14px", border: "2px solid #FCD5BA",
+                            borderTopColor: "#E76F51", borderRadius: "50%",
                             animation: "replyly-spin 1s linear infinite"
                           }} />
                           Regenerating with new perspective...
@@ -947,7 +947,7 @@ export const ReplyModal: React.FC = () => {
                             onChange={(e) => handleDraftChange(reply.id, e.target.value)}
                             style={{
                               width: "100%", height: "76px", padding: "10px 12px", borderRadius: "8px",
-                              border: "1.5px solid #7c3aed", backgroundColor: "#f8fafc", color: "#0f172a",
+                              border: "1.5px solid #E76F51", backgroundColor: "#f8fafc", color: "#0f172a",
                               fontSize: "14px", lineHeight: "1.5", resize: "none", boxSizing: "border-box", outline: "none",
                               fontFamily: "inherit"
                             }}
@@ -969,7 +969,7 @@ export const ReplyModal: React.FC = () => {
                               <button
                                 onClick={() => saveEdit(reply.id)}
                                 style={{
-                                  background: "#7c3aed", border: "none", color: "#fff", borderRadius: "9999px",
+                                  background: "#E76F51", border: "none", color: "#fff", borderRadius: "9999px",
                                   fontSize: "13px", fontWeight: 700, cursor: "pointer", padding: "6px 16px"
                                 }}
                               >
@@ -1000,8 +1000,8 @@ export const ReplyModal: React.FC = () => {
                                 }}
                                 onMouseEnter={(e) => {
                                   if (!isAnyPosting) {
-                                    e.currentTarget.style.borderColor = "#7c3aed"
-                                    e.currentTarget.style.color = "#7c3aed"
+                                    e.currentTarget.style.borderColor = "#E76F51"
+                                    e.currentTarget.style.color = "#E76F51"
                                   }
                                 }}
                                 onMouseLeave={(e) => {
@@ -1023,8 +1023,8 @@ export const ReplyModal: React.FC = () => {
                                 }}
                                 onMouseEnter={(e) => {
                                   if (!isAnyPosting) {
-                                    e.currentTarget.style.borderColor = "#7c3aed"
-                                    e.currentTarget.style.color = "#7c3aed"
+                                    e.currentTarget.style.borderColor = "#E76F51"
+                                    e.currentTarget.style.color = "#E76F51"
                                   }
                                 }}
                                 onMouseLeave={(e) => {
@@ -1057,21 +1057,21 @@ export const ReplyModal: React.FC = () => {
                                 onClick={() => handlePost(reply.id, reply.text)}
                                 disabled={isAnyPosting}
                                 style={{
-                                  background: postingId === reply.id ? "#f5f3ff" : "#7c3aed",
-                                  border: `1px solid ${postingId === reply.id ? "#7c3aed" : "transparent"}`,
-                                  color: postingId === reply.id ? "#7c3aed" : "#ffffff",
+                                  background: postingId === reply.id ? "#FFF3EE" : "#E76F51",
+                                  border: `1px solid ${postingId === reply.id ? "#E76F51" : "transparent"}`,
+                                  color: postingId === reply.id ? "#E76F51" : "#ffffff",
                                   borderRadius: "9999px", padding: "5px 16px", fontSize: "12px", fontWeight: 700,
                                   cursor: isAnyPosting ? "not-allowed" : "pointer", transition: "all 0.15s ease",
-                                  boxShadow: postingId === reply.id ? "none" : "0 2px 6px rgba(124, 58, 237, 0.25)"
+                                  boxShadow: postingId === reply.id ? "none" : "0 2px 6px rgba(231, 111, 81, 0.25)"
                                 }}
                                 onMouseEnter={(e) => {
                                   if (!isAnyPosting && postingId !== reply.id) {
-                                    e.currentTarget.style.backgroundColor = "#6d28d9"
+                                    e.currentTarget.style.backgroundColor = "#D65A3C"
                                   }
                                 }}
                                 onMouseLeave={(e) => {
                                   if (!isAnyPosting && postingId !== reply.id) {
-                                    e.currentTarget.style.backgroundColor = "#7c3aed"
+                                    e.currentTarget.style.backgroundColor = "#E76F51"
                                   }
                                 }}
                               >
@@ -1101,21 +1101,21 @@ export const ReplyModal: React.FC = () => {
 
           {isMissingKey && (
             <div style={{
-              padding: "16px", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", 
+              padding: "16px", backgroundColor: "#FFF3EE", border: "1px solid #FCD5BA", 
               borderRadius: "12px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-start"
             }}>
-              <p style={{ margin: 0, fontSize: "13.5px", color: "#4c1d95", lineHeight: "1.5", fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: "13.5px", color: "#9C3218", lineHeight: "1.5", fontWeight: 600 }}>
                 Add your Gemini API key in Replyly Settings to start generating replies.
               </p>
               <button
                 onClick={openSettings}
                 style={{
-                  background: "#7c3aed", color: "#fff", border: "none", borderRadius: "9999px",
+                  background: "#E76F51", color: "#fff", border: "none", borderRadius: "9999px",
                   padding: "7px 16px", fontSize: "13px", fontWeight: 700, cursor: "pointer",
                   transition: "background 0.15s ease"
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6d28d9"}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#7c3aed"}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#D65A3C"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#E76F51"}
               >
                 Open Settings
               </button>
@@ -1136,8 +1136,8 @@ export const ReplyModal: React.FC = () => {
               background: isMissingKey || postingId !== null 
                 ? "#cbd5e1" 
                 : isGenerating 
-                  ? "linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #6d28d9 100%)" 
-                  : "#7c3aed",
+                  ? "linear-gradient(135deg, #E76F51 0%, #F4A261 50%, #D65A3C 100%)" 
+                  : "#E76F51",
               backgroundSize: isGenerating ? "200% 200%" : "100% 100%",
               animation: isGenerating ? "rly-gradient-flow 2s ease infinite" : "none",
               color: "#ffffff",
@@ -1152,21 +1152,21 @@ export const ReplyModal: React.FC = () => {
               alignItems: "center",
               gap: "8px",
               boxShadow: isGenerating
-                ? "0 0 18px rgba(124, 58, 237, 0.45)"
+                ? "0 0 18px rgba(231, 111, 81, 0.45)"
                 : isMissingKey || postingId !== null
                   ? "none"
-                  : "0 4px 12px rgba(124, 58, 237, 0.28)",
+                  : "0 4px 12px rgba(231, 111, 81, 0.28)",
               position: "relative",
               overflow: "hidden"
             }}
             onMouseEnter={(e) => {
               if (!isGenerating && !isMissingKey && postingId === null) {
-                e.currentTarget.style.backgroundColor = "#6d28d9"
+                e.currentTarget.style.backgroundColor = "#D65A3C"
               }
             }}
             onMouseLeave={(e) => {
               if (!isGenerating && !isMissingKey && postingId === null) {
-                e.currentTarget.style.backgroundColor = "#7c3aed"
+                e.currentTarget.style.backgroundColor = "#E76F51"
               }
             }}
           >
@@ -1268,15 +1268,15 @@ export const ReplyModal: React.FC = () => {
                       }}
                       style={{
                         padding: "12px 14px", borderRadius: "10px",
-                        border: `1.5px solid ${isSelected ? "#7c3aed" : "#e2e8f0"}`,
-                        backgroundColor: isSelected ? "#f5f3ff" : "#f8fafc",
+                        border: `1.5px solid ${isSelected ? "#E76F51" : "#e2e8f0"}`,
+                        backgroundColor: isSelected ? "#FFF3EE" : "#f8fafc",
                         cursor: "pointer", display: "flex", flexDirection: "column", gap: "4px",
                         transition: "all 0.15s ease", position: "relative"
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
-                          e.currentTarget.style.borderColor = "#7c3aed"
-                          e.currentTarget.style.backgroundColor = "#faf5ff"
+                          e.currentTarget.style.borderColor = "#E76F51"
+                          e.currentTarget.style.backgroundColor = "#FFF8F5"
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -1289,12 +1289,12 @@ export const ReplyModal: React.FC = () => {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           <span style={{ fontSize: "16px" }}>{tone.emoji}</span>
-                          <span style={{ fontSize: "13.5px", fontWeight: 700, color: isSelected ? "#7c3aed" : "#0f172a" }}>
+                          <span style={{ fontSize: "13.5px", fontWeight: 700, color: isSelected ? "#E76F51" : "#0f172a" }}>
                             {tone.label}
                           </span>
                         </div>
                         {isSelected && (
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="#7c3aed">
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="#E76F51">
                             <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
                           </svg>
                         )}
