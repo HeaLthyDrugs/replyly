@@ -1,134 +1,134 @@
 ---
-// FeaturesSection.astro - Structured grid of features with clean typography
+// FeaturesSection.astro - Structured responsive grid of features
 ---
 
-<section id="features" class="py-16 sm:py-24 border-b border-border-subtle">
-  <div class="px-6 sm:px-10">
+<section id="features" class="py-12 sm:py-20 md:py-24 border-b border-border-subtle">
+  <div class="px-4 sm:px-8 md:px-10">
     <!-- Header Block -->
-    <div class="max-w-3xl mb-12">
+    <div class="max-w-3xl mb-8 sm:mb-12">
       <div class="text-xs font-mono uppercase tracking-wider text-ink-muted mb-2">
         CORE CAPABILITIES
       </div>
-      <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-ink leading-tight">
+      <h2 class="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-ink leading-tight">
         Engineered for speed, context, and complete control.
       </h2>
-      <p class="mt-4 text-base sm:text-lg text-ink-muted leading-relaxed">
+      <p class="mt-4 text-sm sm:text-base md:text-lg text-ink-muted leading-relaxed">
         Everything you need to produce thoughtful commentary and grow your social presence, without the bloat of conventional SaaS plugins.
       </p>
     </div>
 
     <!-- Features Grid with Structured Borders -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
       <!-- Card 1: Context Engine -->
-      <div class="border border-border-subtle bg-surface p-6 sm:p-8 flex flex-col justify-between hover:border-border transition-all">
+      <div class="border border-border-subtle bg-surface p-5 sm:p-7 md:p-8 flex flex-col justify-between hover:border-border transition-all">
         <div>
-          <div class="flex items-center justify-between mb-4 text-xs font-mono text-ink-muted">
+          <div class="flex items-center justify-between mb-3 sm:mb-4 text-xs font-mono text-ink-muted">
             <span class="uppercase tracking-wider">01 / CONTEXT</span>
             <span>DOM-Aware</span>
           </div>
-          <h3 class="text-lg font-semibold tracking-normal text-ink mb-2">
+          <h3 class="text-base sm:text-lg font-semibold tracking-normal text-ink mb-2">
             Native Thread Context
           </h3>
-          <p class="text-sm leading-relaxed text-ink-secondary">
+          <p class="text-xs sm:text-sm leading-relaxed text-ink-secondary">
             Replyly observes the DOM structure of X and LinkedIn in real time, inspecting the parent post text, author, and thread history so responses sound genuinely relevant.
           </p>
         </div>
-        <div class="mt-6 pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
+        <div class="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
           Active targets: x.com, linkedin.com
         </div>
       </div>
 
       <!-- Card 2: Multi-Model Freedom -->
-      <div class="border border-border-subtle bg-surface p-6 sm:p-8 flex flex-col justify-between hover:border-border transition-all">
+      <div class="border border-border-subtle bg-surface p-5 sm:p-7 md:p-8 flex flex-col justify-between hover:border-border transition-all">
         <div>
-          <div class="flex items-center justify-between mb-4 text-xs font-mono text-ink-muted">
+          <div class="flex items-center justify-between mb-3 sm:mb-4 text-xs font-mono text-ink-muted">
             <span class="uppercase tracking-wider">02 / PROVIDERS</span>
             <span>Multi-LLM</span>
           </div>
-          <h3 class="text-lg font-semibold tracking-normal text-ink mb-2">
+          <h3 class="text-base sm:text-lg font-semibold tracking-normal text-ink mb-2">
             Your Choice of Model
           </h3>
-          <p class="text-sm leading-relaxed text-ink-secondary">
+          <p class="text-xs sm:text-sm leading-relaxed text-ink-secondary">
             Switch effortlessly between Google Gemini (Gemini 2.5 Flash), Groq (Llama 3.3 70B for instant under 200ms generation), and OpenRouter (Claude 3.5, GPT-4o, DeepSeek).
           </p>
         </div>
-        <div class="mt-6 pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
+        <div class="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
           Latency: ~180ms – 450ms
         </div>
       </div>
 
       <!-- Card 3: Tone Presets -->
-      <div class="border border-border-subtle bg-surface p-6 sm:p-8 flex flex-col justify-between hover:border-border transition-all">
+      <div class="border border-border-subtle bg-surface p-5 sm:p-7 md:p-8 flex flex-col justify-between hover:border-border transition-all">
         <div>
-          <div class="flex items-center justify-between mb-4 text-xs font-mono text-ink-muted">
+          <div class="flex items-center justify-between mb-3 sm:mb-4 text-xs font-mono text-ink-muted">
             <span class="uppercase tracking-wider">03 / VOICE</span>
             <span>Presets</span>
           </div>
-          <h3 class="text-lg font-semibold tracking-normal text-ink mb-2">
+          <h3 class="text-base sm:text-lg font-semibold tracking-normal text-ink mb-2">
             Tone Preset Engine
           </h3>
-          <p class="text-sm leading-relaxed text-ink-secondary">
+          <p class="text-xs sm:text-sm leading-relaxed text-ink-secondary">
             Toggle between Professional, Casual, and Witty tones in a single click, or define your own custom persona guidelines in the extension options.
           </p>
         </div>
-        <div class="mt-6 pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
+        <div class="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
           Custom system prompts supported
         </div>
       </div>
 
       <!-- Card 4: One-Click Insertion -->
-      <div class="border border-border-subtle bg-surface p-6 sm:p-8 flex flex-col justify-between hover:border-border transition-all">
+      <div class="border border-border-subtle bg-surface p-5 sm:p-7 md:p-8 flex flex-col justify-between hover:border-border transition-all">
         <div>
-          <div class="flex items-center justify-between mb-4 text-xs font-mono text-ink-muted">
+          <div class="flex items-center justify-between mb-3 sm:mb-4 text-xs font-mono text-ink-muted">
             <span class="uppercase tracking-wider">04 / WORKFLOW</span>
             <span>Instant</span>
           </div>
-          <h3 class="text-lg font-semibold tracking-normal text-ink mb-2">
+          <h3 class="text-base sm:text-lg font-semibold tracking-normal text-ink mb-2">
             Direct Reply Box Insertion
           </h3>
-          <p class="text-sm leading-relaxed text-ink-secondary">
+          <p class="text-xs sm:text-sm leading-relaxed text-ink-secondary">
             No copying and pasting across tabs. The generated reply pastes cleanly into the active feed composer, leaving you in total editorial control before sending.
           </p>
         </div>
-        <div class="mt-6 pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
+        <div class="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
           Zero friction composer integration
         </div>
       </div>
 
       <!-- Card 5: Local-First Storage -->
-      <div class="border border-border-subtle bg-surface p-6 sm:p-8 flex flex-col justify-between hover:border-border transition-all">
+      <div class="border border-border-subtle bg-surface p-5 sm:p-7 md:p-8 flex flex-col justify-between hover:border-border transition-all">
         <div>
-          <div class="flex items-center justify-between mb-4 text-xs font-mono text-ink-muted">
+          <div class="flex items-center justify-between mb-3 sm:mb-4 text-xs font-mono text-ink-muted">
             <span class="uppercase tracking-wider">05 / PRIVACY</span>
             <span>Local-Only</span>
           </div>
-          <h3 class="text-lg font-semibold tracking-normal text-ink mb-2">
+          <h3 class="text-base sm:text-lg font-semibold tracking-normal text-ink mb-2">
             Zero Tracking or Telemetry
           </h3>
-          <p class="text-sm leading-relaxed text-ink-secondary">
+          <p class="text-xs sm:text-sm leading-relaxed text-ink-secondary">
             Your API keys are stored in encrypted `chrome.storage.local`. They never leave your device except over direct HTTPS connections to the AI API endpoint you selected.
           </p>
         </div>
-        <div class="mt-6 pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
+        <div class="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
           Zero third-party cookies or scripts
         </div>
       </div>
 
       <!-- Card 6: Modern Manifest V3 -->
-      <div class="border border-border-subtle bg-surface p-6 sm:p-8 flex flex-col justify-between hover:border-border transition-all">
+      <div class="border border-border-subtle bg-surface p-5 sm:p-7 md:p-8 flex flex-col justify-between hover:border-border transition-all">
         <div>
-          <div class="flex items-center justify-between mb-4 text-xs font-mono text-ink-muted">
+          <div class="flex items-center justify-between mb-3 sm:mb-4 text-xs font-mono text-ink-muted">
             <span class="uppercase tracking-wider">06 / PERFORMANCE</span>
             <span>MV3</span>
           </div>
-          <h3 class="text-lg font-semibold tracking-normal text-ink mb-2">
+          <h3 class="text-base sm:text-lg font-semibold tracking-normal text-ink mb-2">
             Lightweight & Future-Proof
           </h3>
-          <p class="text-sm leading-relaxed text-ink-secondary">
+          <p class="text-xs sm:text-sm leading-relaxed text-ink-secondary">
             Built using the Plasmo framework with strict Chrome Manifest V3 compliance. Negligible RAM footprint, zero background drain, and instant startup.
           </p>
         </div>
-        <div class="mt-6 pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
+        <div class="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-border-subtle text-xs font-mono text-ink-muted">
           Compatible: Chrome, Brave, Arc, Edge
         </div>
       </div>

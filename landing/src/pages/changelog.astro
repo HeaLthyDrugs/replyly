@@ -1,5 +1,5 @@
 ---
-// changelog.astro - Dedicated changelog page with vertical border timeline layout
+// changelog.astro - Dedicated responsive changelog page with vertical border timeline layout
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
@@ -18,35 +18,35 @@ const sortedEntries = entries.sort((a, b) => b.data.date.localeCompare(a.data.da
 
     <main class="flex-1">
       <!-- Header Block -->
-      <section class="py-16 sm:py-20 border-b border-border-subtle px-6 sm:px-10">
+      <section class="py-12 sm:py-20 border-b border-border-subtle px-4 sm:px-8 md:px-10">
         <div class="max-w-3xl">
           <div class="text-xs font-mono uppercase tracking-wider text-ink-muted mb-3 flex items-center gap-2">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             <span>Product Updates</span>
           </div>
-          <h1 class="text-3xl sm:text-5xl font-semibold tracking-normal text-ink leading-tight">
+          <h1 class="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-ink leading-tight">
             Changelog & Release Notes
           </h1>
-          <p class="mt-4 text-base sm:text-lg text-ink-muted leading-relaxed">
+          <p class="mt-4 text-sm sm:text-base md:text-lg text-ink-muted leading-relaxed">
             A transparent timeline of every new model addition, performance optimization, and architectural update to Replyly.
           </p>
         </div>
       </section>
 
-      <!-- Timeline Section (True vertical border timeline, no cards) -->
-      <section class="py-16 sm:py-24 px-6 sm:px-10">
+      <!-- Timeline Section (Responsive vertical border timeline) -->
+      <section class="py-12 sm:py-20 md:py-24 px-4 sm:px-8 md:px-10">
         <div class="max-w-4xl">
-          <div class="relative border-l border-border-subtle ml-2 sm:ml-40 space-y-20 pb-8">
+          <div class="relative border-l border-border-subtle ml-3 sm:ml-36 space-y-16 sm:space-y-20 pb-8">
             {
               sortedEntries.map(async (entry) => {
                 const { Content } = await entry.render();
                 return (
-                  <div class="relative pl-6 sm:pl-12 group">
+                  <div class="relative pl-6 sm:pl-10 group">
                     <!-- Timeline Node Indicator on the Border -->
                     <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-ink border-2 border-canvas group-hover:scale-125 transition-transform"></div>
 
-                    <!-- Date & Version Label (Left-offset on desktop, top on mobile) -->
-                    <div class="sm:absolute sm:-left-40 sm:w-36 sm:text-right sm:pr-8 mb-3 sm:mb-0">
+                    <!-- Date & Version Label (Left column on desktop, inline top on mobile) -->
+                    <div class="sm:absolute sm:-left-36 sm:w-32 sm:text-right sm:pr-6 mb-2 sm:mb-0">
                       <div class="text-sm font-mono font-semibold text-ink">
                         {entry.data.version}
                       </div>
@@ -67,16 +67,16 @@ const sortedEntries = entries.sort((a, b) => b.data.date.localeCompare(a.data.da
                     </div>
 
                     <!-- Release Content (Right of the timeline) -->
-                    <div class="space-y-4">
-                      <h2 class="text-xl sm:text-2xl font-semibold tracking-normal text-ink">
+                    <div class="space-y-3 sm:space-y-4">
+                      <h2 class="text-lg sm:text-2xl font-semibold tracking-normal text-ink">
                         {entry.data.title}
                       </h2>
 
-                      <p class="text-sm sm:text-base text-ink-secondary leading-relaxed font-normal">
+                      <p class="text-xs sm:text-sm md:text-base text-ink-secondary leading-relaxed font-normal">
                         {entry.data.summary}
                       </p>
 
-                      <div class="pt-3 border-t border-border-subtle/70 text-sm leading-relaxed text-ink-secondary space-y-3 [&_h3]:text-xs [&_h3]:font-mono [&_h3]:uppercase [&_h3]:tracking-wider [&_h3]:font-semibold [&_h3]:text-ink [&_h3]:mt-6 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_strong]:text-ink [&_strong]:font-medium [&_code]:font-mono [&_code]:text-xs [&_code]:bg-surface-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:border [&_code]:border-border-subtle">
+                      <div class="pt-3 border-t border-border-subtle/70 text-xs sm:text-sm leading-relaxed text-ink-secondary space-y-3 [&_h3]:text-xs [&_h3]:font-mono [&_h3]:uppercase [&_h3]:tracking-wider [&_h3]:font-semibold [&_h3]:text-ink [&_h3]:mt-6 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_strong]:text-ink [&_strong]:font-medium [&_code]:font-mono [&_code]:text-xs [&_code]:bg-surface-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:border [&_code]:border-border-subtle">
                         <Content />
                       </div>
                     </div>

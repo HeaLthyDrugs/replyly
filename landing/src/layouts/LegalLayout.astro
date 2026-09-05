@@ -14,7 +14,7 @@ const { title, description, lastUpdated } = Astro.props;
   <div class="max-w-6xl mx-auto border-x border-border-subtle min-h-screen bg-canvas flex flex-col">
     <!-- Minimal Top Header -->
     <header class="border-b border-border-subtle bg-canvas/90 backdrop-blur sticky top-0 z-40">
-      <div class="px-6 sm:px-10 h-16 md:h-20 flex items-center justify-between">
+      <div class="px-4 sm:px-8 md:px-10 h-16 md:h-20 flex items-center justify-between">
         <a
           href="/"
           class="inline-flex items-center gap-2 text-sm font-medium text-ink hover:text-ink-secondary transition-colors"
@@ -39,29 +39,29 @@ const { title, description, lastUpdated } = Astro.props;
     </header>
 
     <!-- Legal Body Container -->
-    <main class="flex-1 max-w-3xl w-full mx-auto px-6 sm:px-10 py-16 md:py-24">
-      <div class="mb-12 border-b border-border-subtle pb-8">
+    <main class="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-8 md:px-10 py-12 sm:py-16 md:py-24">
+      <div class="mb-8 sm:mb-12 border-b border-border-subtle pb-6 sm:pb-8">
         <div class="text-xs font-mono uppercase tracking-wider text-ink-muted mb-3">
           <span>Legal Documentation • Updated {lastUpdated}</span>
         </div>
-        <h1 class="text-3xl md:text-5xl font-semibold tracking-normal text-ink leading-tight">
+        <h1 class="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-ink leading-tight">
           {title}
         </h1>
-        <p class="mt-4 text-base md:text-lg text-ink-muted leading-relaxed">
+        <p class="mt-4 text-sm sm:text-base md:text-lg text-ink-muted leading-relaxed">
           {description}
         </p>
       </div>
 
-      <article class="space-y-10 text-[15px] leading-relaxed text-ink-secondary">
+      <article class="space-y-8 sm:space-y-10 text-xs sm:text-sm md:text-[15px] leading-relaxed text-ink-secondary">
         <slot />
       </article>
     </main>
 
     <!-- Legal Footer -->
-    <footer class="border-t border-border-subtle py-10 bg-surface-muted/30">
-      <div class="px-6 sm:px-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-ink-muted">
+    <footer class="border-t border-border-subtle py-8 sm:py-10 bg-surface-muted/30">
+      <div class="px-4 sm:px-8 md:px-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-ink-muted">
         <span>© {new Date().getFullYear()} Replyly. Open source under MIT.</span>
-        <div class="flex items-center gap-6">
+        <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
           <a href="/privacy" class="hover:text-ink transition-colors">Privacy Policy</a>
           <a href="/terms" class="hover:text-ink transition-colors">Terms of Service</a>
           <a href="/changelog" class="hover:text-ink transition-colors">Changelog</a>

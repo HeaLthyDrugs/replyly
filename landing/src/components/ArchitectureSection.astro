@@ -1,88 +1,93 @@
 ---
-// ArchitectureSection.astro - Direct diagram display without outer layers, comparison table with tabular figures
+// ArchitectureSection.astro - Responsive diagram and comparison table
 ---
 
-<section id="architecture" class="py-16 sm:py-24 border-b border-border-subtle">
-  <div class="px-6 sm:px-10">
+<section id="architecture" class="py-12 sm:py-20 md:py-24 border-b border-border-subtle overflow-hidden">
+  <div class="px-4 sm:px-8 md:px-10">
     <!-- Header Block -->
-    <div class="max-w-3xl mb-12">
+    <div class="max-w-3xl mb-8 sm:mb-12">
       <div class="text-xs font-mono uppercase tracking-wider text-ink-muted mb-2">
         BYOK ARCHITECTURE & PRIVACY
       </div>
-      <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-ink leading-tight">
+      <h2 class="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-ink leading-tight">
         Your keys stay in your browser. No proxy servers, ever.
       </h2>
-      <p class="mt-4 text-base sm:text-lg text-ink-muted leading-relaxed">
+      <p class="mt-4 text-sm sm:text-base md:text-lg text-ink-muted leading-relaxed">
         Modern social extensions often route your sensitive browsing feeds through private cloud servers. Replyly is engineered from the ground up to be 100% client-side: your browser initiates direct encrypted HTTPS requests to AI providers using your locally saved keys.
       </p>
     </div>
 
-    <!-- Direct Architecture Visual (Shown directly without outer layer or nested borders) -->
-    <div class="my-12">
+    <!-- Direct Architecture Visual -->
+    <div class="my-8 sm:my-12">
       <img
         src="/architecture-diagram.jpg"
         alt="Replyly Architecture and Data Flow"
         class="max-w-4xl mx-auto w-full h-auto object-contain block"
         loading="lazy"
       />
-      <div class="mt-3 text-xs font-mono text-ink-muted text-center">
+      <div class="mt-3 text-xs font-mono text-ink-muted text-center px-2">
         Figure 1.0 — Direct client-side request flow via Chrome Manifest V3 sandbox
       </div>
     </div>
 
-    <!-- Comparison Table (Tabular Figures & Micro-Details) -->
-    <div class="border border-border-subtle overflow-hidden bg-surface mt-16 shadow-sm">
-      <div class="px-6 py-4 border-b border-border-subtle bg-surface-muted/50 flex items-center justify-between">
+    <!-- Comparison Table (Responsive with mobile swipe cue) -->
+    <div class="border border-border-subtle overflow-hidden bg-surface mt-10 sm:mt-16 shadow-sm">
+      <div class="px-4 sm:px-6 py-4 border-b border-border-subtle bg-surface-muted/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h3 class="text-sm font-semibold text-ink">Architecture Comparison</h3>
           <p class="text-xs text-ink-muted mt-0.5">How Replyly compares to typical commercial AI extensions</p>
         </div>
-        <span class="text-xs font-mono text-ink-secondary">
+        <span class="text-xs font-mono text-ink-secondary self-start sm:self-auto">
           Data Verified
         </span>
       </div>
 
+      <!-- Mobile Scroll Cue -->
+      <div class="block sm:hidden text-[11px] font-mono text-ink-muted text-right px-4 py-1.5 bg-surface-muted/30 border-b border-border-subtle">
+        ← Swipe horizontally to compare →
+      </div>
+
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
+        <table class="w-full text-left text-sm min-w-[500px]">
           <thead>
             <tr class="border-b border-border-subtle text-xs font-mono uppercase tracking-wider text-ink-muted bg-surface-muted/20">
-              <th class="py-3 px-6 font-medium">Dimension</th>
-              <th class="py-3 px-6 font-medium text-ink">Replyly (Local-First)</th>
-              <th class="py-3 px-6 font-medium text-ink-faint">Standard AI Wrappers</th>
+              <th class="py-3 px-4 sm:px-6 font-medium">Dimension</th>
+              <th class="py-3 px-4 sm:px-6 font-medium text-ink">Replyly (Local-First)</th>
+              <th class="py-3 px-4 sm:px-6 font-medium text-ink-faint">Standard AI Wrappers</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border-subtle text-ink-secondary">
             <tr>
-              <td class="py-3.5 px-6 font-medium text-ink">API Key Storage</td>
-              <td class="py-3.5 px-6 font-mono text-xs text-ink">
+              <td class="py-3.5 px-4 sm:px-6 font-medium text-ink">API Key Storage</td>
+              <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-ink">
                 <span class="text-emerald-700 font-semibold">chrome.storage.local</span>
               </td>
-              <td class="py-3.5 px-6 font-mono text-xs text-ink-muted">Central Cloud Database</td>
+              <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-ink-muted">Central Cloud Database</td>
             </tr>
             <tr>
-              <td class="py-3.5 px-6 font-medium text-ink">Telemetry & Logs</td>
-              <td class="py-3.5 px-6 font-mono text-xs text-ink">
+              <td class="py-3.5 px-4 sm:px-6 font-medium text-ink">Telemetry & Logs</td>
+              <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-ink">
                 <span class="tabular-nums font-semibold text-emerald-700">0 bytes collected</span>
               </td>
-              <td class="py-3.5 px-6 font-mono text-xs text-ink-muted">All posts logged & analyzed</td>
+              <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-ink-muted">All posts logged & analyzed</td>
             </tr>
             <tr>
-              <td class="py-3.5 px-6 font-medium text-ink">Pricing Model</td>
-              <td class="py-3.5 px-6 font-mono text-xs text-ink">
+              <td class="py-3.5 px-4 sm:px-6 font-medium text-ink">Pricing Model</td>
+              <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-ink">
                 <span class="font-semibold text-ink">Free ($0/mo)</span> + direct token cents
               </td>
-              <td class="py-3.5 px-6 font-mono text-xs text-ink-muted">$15 – $30 / month</td>
+              <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-ink-muted">$15 – $30 / month</td>
             </tr>
             <tr>
-              <td class="py-3.5 px-6 font-medium text-ink">AI Model Choices</td>
-              <td class="py-3.5 px-6 text-ink">
-                Google Gemini, Groq (Llama), OpenRouter (Claude, GPT, DeepSeek)
+              <td class="py-3.5 px-4 sm:px-6 font-medium text-ink">AI Model Choices</td>
+              <td class="py-3.5 px-4 sm:px-6 text-ink">
+                Google Gemini, Groq (Llama), OpenRouter
               </td>
-              <td class="py-3.5 px-6 text-ink-muted">Single locked model wrapper</td>
+              <td class="py-3.5 px-4 sm:px-6 text-ink-muted">Single locked model wrapper</td>
             </tr>
             <tr>
-              <td class="py-3.5 px-6 font-medium text-ink">Code Transparency</td>
-              <td class="py-3.5 px-6 font-mono text-xs text-ink">
+              <td class="py-3.5 px-4 sm:px-6 font-medium text-ink">Code Transparency</td>
+              <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-ink">
                 <a
                   href="https://github.com/HeaLthyDrugs/replyly"
                   target="_blank"
@@ -92,7 +97,7 @@
                   100% Open Source (MIT)
                 </a>
               </td>
-              <td class="py-3.5 px-6 font-mono text-xs text-ink-muted">Closed source black box</td>
+              <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-ink-muted">Closed source black box</td>
             </tr>
           </tbody>
         </table>
