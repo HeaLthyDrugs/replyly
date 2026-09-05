@@ -11,6 +11,8 @@ export interface ModalData {
   postText: string
   article: HTMLElement
   hasMedia: boolean
+  mediaType?: "video" | "image" | "document" | "media"
+  mediaDescription?: string
   platform?: "x" | "linkedin"
 }
 
@@ -146,10 +148,15 @@ export const ReplyModal: React.FC = () => {
       const customEvent = e as CustomEvent<ModalData>
       const newPostData = { ...customEvent.detail }
 
-      // Re-extract if on LinkedIn and data is missing or default
+      // Re-extract if on LinkedIn and data is missing, default, or accidentally captured video controls
       if (
         newPostData.platform === "linkedin" &&
-        (!newPostData.postText || newPostData.author === "LinkedIn Member") &&
+        (!newPostData.postText ||
+          newPostData.author === "LinkedIn Member" ||
+          newPostData.postText.toLowerCase().includes("remaining time") ||
+          newPostData.postText.toLowerCase().includes("playback rate") ||
+          newPostData.postText.toLowerCase().includes("vjs-") ||
+          newPostData.postText.toLowerCase().includes("stream type live")) &&
         newPostData.article
       ) {
         const postCard =
@@ -159,7 +166,11 @@ export const ReplyModal: React.FC = () => {
         const freshData = extractLinkedInPostData(postCard)
         if (freshData.text) newPostData.postText = freshData.text
         if (freshData.author && freshData.author !== "LinkedIn Member") newPostData.author = freshData.author
-        if (freshData.hasMedia) newPostData.hasMedia = true
+        if (freshData.hasMedia) {
+          newPostData.hasMedia = true
+          newPostData.mediaType = freshData.mediaType
+          newPostData.mediaDescription = freshData.mediaDescription
+        }
       }
 
       setData(newPostData)
@@ -276,9 +287,28 @@ export const ReplyModal: React.FC = () => {
   }
 
   const handleGenerate = async () => {
-    const effectiveText =
-      data.postText ||
-      (data.platform === "linkedin" && data.hasMedia ? `[Media post by ${data.author}]` : "")
+    const mediaInfo =
+      data.article && data.platform === "linkedin"
+        ? detectLinkedInPostMedia(data.article)
+        : { hasMedia: data.hasMedia, mediaType: data.mediaType, mediaDescription: data.mediaDescription }
+
+    let effectiveText = data.postText
+    if (data.platform === "linkedin" && (data.hasMedia || mediaInfo.hasMedia)) {
+      const mediaLabel =
+        (data.mediaType || mediaInfo.mediaType) === "video"
+          ? "a video demonstration"
+          : (data.mediaType || mediaInfo.mediaType) === "image"
+            ? "an image / screenshot"
+            : (data.mediaType || mediaInfo.mediaType) === "document"
+              ? "a document / carousel"
+              : "media content"
+
+      if (effectiveText) {
+        effectiveText = `${effectiveText}\n\n[Attached media context: The author also attached ${mediaLabel} to this post]`
+      } else {
+        effectiveText = `[Media post: Author ${data.author} shared ${mediaLabel} with no text caption]`
+      }
+    }
 
     if (!effectiveText && !grokContext) return
     
@@ -598,17 +628,48 @@ export const ReplyModal: React.FC = () => {
           </div>
 
           {/* Media detected indicator for LinkedIn */}
-          {data.article && data.platform === "linkedin" && (data.hasMedia || detectLinkedInPostMedia(data.article).hasMedia) && (
-            <div style={{ 
-              display: "flex", alignItems: "center", gap: "6px", 
-              fontSize: "12px", color: "#64748b", fontWeight: 600
-            }}>
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"></path>
-              </svg>
-              This post contains media
-            </div>
-          )}
+          {data.article && data.platform === "linkedin" && (() => {
+            const currentMedia = detectLinkedInPostMedia(data.article)
+            const isMedia = data.hasMedia || currentMedia.hasMedia
+            if (!isMedia) return null
+
+            const type = data.mediaType || currentMedia.mediaType || "media"
+            const label =
+              type === "video"
+                ? "Video attached"
+                : type === "image"
+                  ? "Image attached"
+                  : type === "document"
+                    ? "Document / Carousel attached"
+                    : "Media attached"
+
+            const icon =
+              type === "video" ? "🎬" : type === "image" ? "🖼️" : type === "document" ? "📄" : "📷"
+
+            return (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                  padding: "9px 12px",
+                  backgroundColor: "#f0f9ff",
+                  borderRadius: "8px",
+                  border: "1px solid #bae6fd",
+                  fontSize: "12px",
+                  color: "#0369a1"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 700 }}>
+                  <span style={{ fontSize: "14px" }}>{icon}</span>
+                  <span>{label}</span>
+                </div>
+                <div style={{ fontSize: "11.5px", color: "#0c4a6e", lineHeight: "1.4" }}>
+                  💡 AI generates replies using the author's commentary & media context (fully optimized for free & text-only API models).
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Grok Context Section - Only on X (Twitter) */}
           {data.article && data.platform !== "linkedin" && (

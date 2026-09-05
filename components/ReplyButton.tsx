@@ -8,6 +8,7 @@ interface ReplyButtonProps {
   author: string
   article: HTMLElement
   hasMedia: boolean
+  mediaType?: "video" | "image" | "document" | "media"
   platform?: "x" | "linkedin"
 }
 
@@ -16,6 +17,7 @@ export const ReplyButton: React.FC<ReplyButtonProps> = ({
   author,
   article,
   hasMedia,
+  mediaType,
   platform = "x"
 }) => {
   const isLinkedIn = platform === "linkedin"
@@ -29,6 +31,7 @@ export const ReplyButton: React.FC<ReplyButtonProps> = ({
     let currentText = postText
     let currentAuthor = author
     let mediaPresent = hasMedia
+    let currentMediaType = mediaType
 
     if (isLinkedIn) {
       // Find the true post card from article if article was a sub-element
@@ -47,6 +50,7 @@ export const ReplyButton: React.FC<ReplyButtonProps> = ({
         currentAuthor = extracted.author
       }
       mediaPresent = extracted.hasMedia || hasMedia
+      currentMediaType = extracted.mediaType || mediaType
     } else {
       const textElement = article.querySelector('[data-testid="tweetText"]') as HTMLElement | null
       currentText = textElement ? textElement.innerText.trim() : postText
@@ -56,7 +60,14 @@ export const ReplyButton: React.FC<ReplyButtonProps> = ({
 
     // Dispatch custom event to open the modal
     const event = new CustomEvent("replyly-open-modal", {
-      detail: { author: currentAuthor, postText: currentText, article, hasMedia: mediaPresent, platform }
+      detail: {
+        author: currentAuthor,
+        postText: currentText,
+        article,
+        hasMedia: mediaPresent,
+        mediaType: currentMediaType,
+        platform
+      }
     })
     document.dispatchEvent(event)
   }

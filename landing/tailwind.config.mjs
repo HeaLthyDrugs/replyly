@@ -53,12 +53,13 @@ export default {
         ],
       },
       letterSpacing: {
-        tighter: '-0.04em',
-        tight: '-0.025em',
-        snug: '-0.015em',
+        tighter: '-0.015em',
+        tight: '-0.008em',
+        snug: '0em',
+        normal: '0em',
       },
       lineHeight: {
-        display: '1.08',
+        display: '1.2',
       },
     },
   },

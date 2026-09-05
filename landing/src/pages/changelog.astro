@@ -1,0 +1,94 @@
+---
+// changelog.astro - Dedicated changelog page with vertical border timeline layout
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const entries = await getCollection('changelog');
+const sortedEntries = entries.sort((a, b) => b.data.date.localeCompare(a.data.date));
+---
+
+<Layout
+  title="Changelog — Replyly"
+  description="Continuous release notes, new capabilities, and architectural updates for Replyly."
+>
+  <div class="max-w-6xl mx-auto border-x border-border-subtle min-h-screen bg-canvas flex flex-col">
+    <Navbar />
+
+    <main class="flex-1">
+      <!-- Header Block -->
+      <section class="py-16 sm:py-20 border-b border-border-subtle px-6 sm:px-10">
+        <div class="max-w-3xl">
+          <div class="text-xs font-mono uppercase tracking-wider text-ink-muted mb-3 flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>Product Updates</span>
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-semibold tracking-normal text-ink leading-tight">
+            Changelog & Release Notes
+          </h1>
+          <p class="mt-4 text-base sm:text-lg text-ink-muted leading-relaxed">
+            A transparent timeline of every new model addition, performance optimization, and architectural update to Replyly.
+          </p>
+        </div>
+      </section>
+
+      <!-- Timeline Section (True vertical border timeline, no cards) -->
+      <section class="py-16 sm:py-24 px-6 sm:px-10">
+        <div class="max-w-4xl">
+          <div class="relative border-l border-border-subtle ml-2 sm:ml-40 space-y-20 pb-8">
+            {
+              sortedEntries.map(async (entry) => {
+                const { Content } = await entry.render();
+                return (
+                  <div class="relative pl-6 sm:pl-12 group">
+                    <!-- Timeline Node Indicator on the Border -->
+                    <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-ink border-2 border-canvas group-hover:scale-125 transition-transform"></div>
+
+                    <!-- Date & Version Label (Left-offset on desktop, top on mobile) -->
+                    <div class="sm:absolute sm:-left-40 sm:w-36 sm:text-right sm:pr-8 mb-3 sm:mb-0">
+                      <div class="text-sm font-mono font-semibold text-ink">
+                        {entry.data.version}
+                      </div>
+                      <div class="text-xs font-mono text-ink-muted tabular-nums mt-0.5">
+                        {new Date(entry.data.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </div>
+                      {entry.data.badge && (
+                        <div class="mt-1">
+                          <span class="text-[11px] font-mono text-emerald-700 font-medium">
+                            {entry.data.badge}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <!-- Release Content (Right of the timeline) -->
+                    <div class="space-y-4">
+                      <h2 class="text-xl sm:text-2xl font-semibold tracking-normal text-ink">
+                        {entry.data.title}
+                      </h2>
+
+                      <p class="text-sm sm:text-base text-ink-secondary leading-relaxed font-normal">
+                        {entry.data.summary}
+                      </p>
+
+                      <div class="pt-3 border-t border-border-subtle/70 text-sm leading-relaxed text-ink-secondary space-y-3 [&_h3]:text-xs [&_h3]:font-mono [&_h3]:uppercase [&_h3]:tracking-wider [&_h3]:font-semibold [&_h3]:text-ink [&_h3]:mt-6 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_strong]:text-ink [&_strong]:font-medium [&_code]:font-mono [&_code]:text-xs [&_code]:bg-surface-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:border [&_code]:border-border-subtle">
+                        <Content />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <Footer />
+  </div>
+</Layout>

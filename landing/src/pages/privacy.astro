@@ -1,0 +1,88 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+---
+
+<LegalLayout
+  title="Privacy Policy"
+  description="How Replyly respects your privacy through local-first architecture and zero telemetry."
+  lastUpdated="September 2026"
+>
+  <section class="space-y-4">
+    <h2 class="text-xl font-semibold text-ink tracking-tight">1. Architectural Overview & Philosophy</h2>
+    <p>
+      Replyly is designed with a strict "local-first" privacy model. We believe that browser extensions assisting with social media interactions should not inspect, collect, or store your private feeds or credentials on external servers.
+    </p>
+    <p>
+      Replyly operates entirely within your browser environment. We do not maintain user accounts, central databases, proxy servers, or remote telemetry systems.
+    </p>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="text-xl font-semibold text-ink tracking-tight">2. Storage of API Keys</h2>
+    <p>
+      Replyly operates under a "Bring Your Own Key" (BYOK) model. When you supply an API key (for Google Gemini, Groq, or OpenRouter):
+    </p>
+    <ul class="list-disc pl-5 space-y-2">
+      <li>Your key is saved exclusively in your browser's private <code class="font-mono text-xs bg-surface-muted px-1.5 py-0.5 rounded border border-border-subtle text-ink">chrome.storage.local</code>.</li>
+      <li>Your key is never transmitted to Replyly or any intermediate servers.</li>
+      <li>Your key is only sent directly to the official API endpoints of the AI provider you explicitly chose, via encrypted HTTPS connections.</li>
+    </ul>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="text-xl font-semibold text-ink tracking-tight">3. Feed & Conversation Data</h2>
+    <p>
+      When you activate Replyly on a post on X (Twitter) or LinkedIn:
+    </p>
+    <ul class="list-disc pl-5 space-y-2">
+      <li>The extension extracts the text and author of the parent post you are replying to solely to construct the contextual prompt.</li>
+      <li>This context is held ephemerally in memory only for the duration of the API call.</li>
+      <li>No conversation history, drafted replies, or browsing habits are retained, recorded, or transmitted to any third parties other than your designated AI provider.</li>
+    </ul>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="text-xl font-semibold text-ink tracking-tight">4. Permissions Disclosure</h2>
+    <p>
+      In accordance with Chrome Web Store policies, here is how each requested permission is utilized:
+    </p>
+    <div class="rounded-xl border border-border-subtle bg-surface p-4 space-y-3 font-mono text-xs">
+      <div>
+        <span class="font-semibold text-ink">storage:</span>
+        <span class="text-ink-secondary"> Used solely to save your local extension settings (selected model, tone preference, API keys) inside your browser.</span>
+      </div>
+      <div>
+        <span class="font-semibold text-ink">activeTab:</span>
+        <span class="text-ink-secondary"> Used to interact with the active social media tab to read post context when you invoke the extension.</span>
+      </div>
+      <div>
+        <span class="font-semibold text-ink">host_permissions (https://*/*):</span>
+        <span class="text-ink-secondary"> Required to send direct HTTPS requests to AI provider endpoints (Google AI Studio, Groq, OpenRouter) and inject UI on supported social networks.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="text-xl font-semibold text-ink tracking-tight">5. Third-Party Analytics & Cookies</h2>
+    <p>
+      Replyly does not include Google Analytics, Mixpanel, Sentry, Facebook Pixels, or any tracking/telemetry scripts. We do not set tracking cookies.
+    </p>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="text-xl font-semibold text-ink tracking-tight">6. Open Source Transparency</h2>
+    <p>
+      Replyly is open source under the MIT License. Anyone can audit the entire codebase, build processes, and network calls at
+      <a href="https://github.com/HeaLthyDrugs/replyly" target="_blank" rel="noreferrer" class="underline text-ink font-medium">
+        github.com/HeaLthyDrugs/replyly
+      </a>.
+    </p>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="text-xl font-semibold text-ink tracking-tight">7. Contact</h2>
+    <p>
+      If you have questions regarding this Privacy Policy or data security practices, please open an issue or discussion on GitHub.
+    </p>
+  </section>
+</LegalLayout>

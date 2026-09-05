@@ -1,0 +1,170 @@
+---
+// InteractiveShowcase.astro - Interactive tone switcher and live preview
+---
+
+<section id="demo" class="py-16 sm:py-24 border-b border-border-subtle">
+  <div class="px-6 sm:px-10">
+    <!-- Section Eyebrow & Header -->
+    <div class="max-w-3xl mb-12">
+      <div class="text-xs font-mono uppercase tracking-wider text-ink-muted mb-2">
+        INTERACTIVE PREVIEW
+      </div>
+      <h2 class="text-2xl sm:text-4xl font-semibold tracking-normal text-ink">
+        Tone presets calibrated for human conversations.
+      </h2>
+      <p class="mt-3 text-base sm:text-lg text-ink-muted leading-relaxed">
+        Select a tone below to see how Replyly reads the post conversation and crafts context-aware responses in milliseconds.
+      </p>
+    </div>
+
+    <!-- Interface Showcase Box -->
+    <div class="border border-border-subtle bg-surface-muted/40 p-5 sm:p-8 md:p-10 shadow-sm">
+      <!-- Top Meta Bar -->
+      <div class="flex flex-wrap items-center justify-between pb-6 mb-6 border-b border-border-subtle gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-border-strong"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-border-strong"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-border-strong"></div>
+          <span class="ml-2 text-xs font-mono text-ink-muted">feed.x.com/status/1892041</span>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs font-mono text-ink-muted">
+          <span>Provider: Google Gemini</span>
+          <span class="text-border-strong">•</span>
+          <span>Model: gemini-2.5-flash</span>
+        </div>
+      </div>
+
+      <!-- Main Showcase Grid: Original Post + Replyly Context Engine -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Left: The Context Post (5 cols) -->
+        <div class="lg:col-span-5 bg-surface p-5 border border-border-subtle shadow-sm">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 rounded-full bg-surface-subtle flex items-center justify-center font-semibold text-xs text-ink-secondary">
+              AK
+            </div>
+            <div>
+              <div class="text-sm font-semibold text-ink leading-none">Alex K.</div>
+              <div class="text-xs font-mono text-ink-muted mt-1">@alexk_dev • 2h ago</div>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed text-ink-secondary">
+            Most browser extensions are becoming bloated SaaS wrappers charging $20/month just to forward requests to an LLM API that costs fractions of a cent. 
+            <br /><br />
+            Whatever happened to lightweight, client-side tools where users bring their own API keys?
+          </p>
+          <div class="mt-4 pt-3 border-t border-border-subtle flex items-center gap-4 text-xs font-mono text-ink-muted">
+            <span>💬 48 replies</span>
+            <span>🔁 182 reposts</span>
+            <span>❤️ 1.4k likes</span>
+          </div>
+        </div>
+
+        <!-- Right: Replyly Native Overlay & Tone Switcher (7 cols) -->
+        <div class="lg:col-span-7 bg-surface p-5 sm:p-6 border border-border-subtle shadow-sm flex flex-col justify-between">
+          <div>
+            <!-- Tone Selection Tabs -->
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div class="text-xs font-mono uppercase tracking-wider text-ink-muted">
+                Select Tone Preset:
+              </div>
+              <!-- Tabular performance text -->
+              <div class="text-xs font-mono text-emerald-700 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Latency: 240ms • 48 tokens</span>
+              </div>
+            </div>
+
+            <!-- Tone Pill Buttons -->
+            <div class="flex flex-wrap gap-2 mb-6" id="tone-selector">
+              <button
+                type="button"
+                data-tone="professional"
+                class="tone-btn active px-3.5 py-1.5 rounded-full text-xs font-medium border border-ink bg-ink text-ink-inverse transition-all"
+              >
+                Professional
+              </button>
+              <button
+                type="button"
+                data-tone="casual"
+                class="tone-btn px-3.5 py-1.5 rounded-full text-xs font-medium border border-border-subtle bg-surface-muted text-ink-secondary hover:text-ink hover:border-border transition-all"
+              >
+                Casual
+              </button>
+              <button
+                type="button"
+                data-tone="witty"
+                class="tone-btn px-3.5 py-1.5 rounded-full text-xs font-medium border border-border-subtle bg-surface-muted text-ink-secondary hover:text-ink hover:border-border transition-all"
+              >
+                Witty
+              </button>
+              <button
+                type="button"
+                data-tone="custom"
+                class="tone-btn px-3.5 py-1.5 rounded-full text-xs font-medium border border-border-subtle bg-surface-muted text-ink-secondary hover:text-ink hover:border-border transition-all"
+              >
+                Custom Instruction
+              </button>
+            </div>
+
+            <!-- Dynamic Reply Preview Box -->
+            <div class="bg-surface-muted/50 p-4 border border-border-subtle min-h-[110px] flex items-center">
+              <p id="reply-text" class="text-sm sm:text-[15px] leading-relaxed text-ink font-normal transition-opacity duration-200">
+                100% agreed. The BYOK model gives users full privacy and transparency over their data. Running client-side via MV3 ensures zero middleman lock-in and costs just direct fractions of a cent per reply.
+              </p>
+            </div>
+          </div>
+
+          <!-- Action Bar simulation -->
+          <div class="mt-6 pt-4 border-t border-border-subtle flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-ink-muted">
+            <div class="flex items-center gap-2">
+              <img src="/logo.svg" alt="Replyly mark" class="w-4 h-4 rounded" />
+              <span>Generated natively via Replyly</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-ink-secondary font-medium">Estimated cost: $0.00002</span>
+              <button class="px-3 py-1 bg-surface border border-border-subtle hover:bg-surface-subtle text-ink font-sans text-xs transition-colors">
+                Insert to Reply Box
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const toneReplies = {
+    professional: "100% agreed. The BYOK model gives users full privacy and transparency over their data. Running client-side via MV3 ensures zero middleman lock-in and costs just direct fractions of a cent per reply.",
+    casual: "Spot on! Paying a monthly sub for what is basically a thin wrapper over an API call feels wild. Direct BYOK in local storage is so much better.",
+    witty: "Charging \$20/month for an API call that costs \$0.0001 is definitely the modern SaaS alchemy. Keep extensions thin and client-side!",
+    custom: "This aligns with our privacy-first philosophy: zero telemetry, direct provider connections, and user-owned API credentials.",
+  };
+
+  const buttons = document.querySelectorAll('.tone-btn');
+  const replyText = document.getElementById('reply-text');
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tone = btn.getAttribute('data-tone');
+      if (!tone || !toneReplies[tone]) return;
+
+      buttons.forEach((b) => {
+        b.classList.remove('active', 'border-ink', 'bg-ink', 'text-ink-inverse');
+        b.classList.add('border-border-subtle', 'bg-surface-muted', 'text-ink-secondary');
+      });
+
+      btn.classList.add('active', 'border-ink', 'bg-ink', 'text-ink-inverse');
+      btn.classList.remove('border-border-subtle', 'bg-surface-muted', 'text-ink-secondary');
+
+      if (replyText) {
+        replyText.style.opacity = '0';
+        setTimeout(() => {
+          replyText.textContent = toneReplies[tone];
+          replyText.style.opacity = '1';
+        }, 150);
+      }
+    });
+  });
+</script>

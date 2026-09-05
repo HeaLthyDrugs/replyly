@@ -1,0 +1,27 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Hero from '../components/Hero.astro';
+import InteractiveShowcase from '../components/InteractiveShowcase.astro';
+import ArchitectureSection from '../components/ArchitectureSection.astro';
+import FeaturesSection from '../components/FeaturesSection.astro';
+import FAQSection from '../components/FAQSection.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="Replyly — Contextual AI Replies for X & LinkedIn"
+  description="Intelligent, contextual AI-powered replies for social media feeds using your preferred models (Gemini, Groq, OpenRouter). Zero telemetry, 100% client-side privacy."
+>
+  <div class="max-w-6xl mx-auto border-x border-border-subtle min-h-screen bg-canvas flex flex-col">
+    <Navbar />
+    <main class="flex-1">
+      <Hero />
+      <InteractiveShowcase />
+      <ArchitectureSection />
+      <FeaturesSection />
+      <FAQSection />
+    </main>
+    <Footer />
+  </div>
+</Layout>

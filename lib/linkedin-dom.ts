@@ -3,12 +3,16 @@ export interface LinkedInMediaInfo {
   hasVideo: boolean
   hasCards: boolean
   hasMedia: boolean
+  mediaType?: "video" | "image" | "document" | "media"
+  mediaDescription?: string
 }
 
 export interface LinkedInPostData {
   author: string
   text: string
   hasMedia: boolean
+  mediaType?: "video" | "image" | "document" | "media"
+  mediaDescription?: string
   postId: string | null
 }
 
@@ -16,18 +20,21 @@ export interface LinkedInPostData {
  * Detects whether a LinkedIn post contains media (images, videos, articles, carousels/documents)
  */
 export function detectLinkedInPostMedia(container: HTMLElement): LinkedInMediaInfo {
-  const hasImages =
-    container.querySelector('.feed-shared-image') !== null ||
-    container.querySelector('img.feed-shared-image__image') !== null ||
-    container.querySelector('img[src*="media.licdn.com"]') !== null ||
-    container.querySelector('.update-components-image') !== null ||
-    container.querySelector('.feed-shared-image__container') !== null
-
   const hasVideo =
     container.querySelector('video') !== null ||
     container.querySelector('.feed-shared-linkedin-video') !== null ||
     container.querySelector('.update-components-video') !== null ||
-    container.querySelector('.feed-shared-external-video__wrapper') !== null
+    container.querySelector('.feed-shared-external-video__wrapper') !== null ||
+    container.querySelector('.video-js') !== null ||
+    container.querySelector('[class*="video-player"]') !== null ||
+    container.querySelector('[class*="linkedin-video"]') !== null
+
+  const hasImages =
+    container.querySelector('.feed-shared-image') !== null ||
+    container.querySelector('img.feed-shared-image__image') !== null ||
+    container.querySelector('img[src*="media.licdn.com"]:not([class*="avatar"]):not(.update-components-actor__avatar-image)') !== null ||
+    container.querySelector('.update-components-image') !== null ||
+    container.querySelector('.feed-shared-image__container') !== null
 
   const hasCards =
     container.querySelector('.feed-shared-article') !== null ||
@@ -36,17 +43,55 @@ export function detectLinkedInPostMedia(container: HTMLElement): LinkedInMediaIn
     container.querySelector('.feed-shared-celebration') !== null ||
     container.querySelector('.update-components-article') !== null
 
+  const hasMedia = hasVideo || hasImages || hasCards
+  let mediaType: "video" | "image" | "document" | "media" | undefined
+  let mediaDescription = ""
+
+  if (hasVideo) {
+    mediaType = "video"
+    mediaDescription = "video"
+  } else if (hasImages) {
+    mediaType = "image"
+    mediaDescription = "image"
+  } else if (hasCards) {
+    mediaType = "document"
+    mediaDescription = "document"
+  }
+
   return {
     hasImages,
     hasVideo,
     hasCards,
-    hasMedia: hasImages || hasVideo || hasCards
+    hasMedia,
+    mediaType,
+    mediaDescription
   }
 }
 
 /**
- * Extracts author, post text, media status, and post ID from a LinkedIn post element
+ * Checks if a string contains video player accessibility controls text
  */
+function isMediaOrControlsText(text: string): boolean {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return (
+    lower.includes('remaining time') ||
+    lower.includes('playback rate') ||
+    lower.includes('subtitles settings') ||
+    lower.includes('picture-in-picture') ||
+    lower.includes('seek to live') ||
+    lower.includes('stream type live') ||
+    lower.includes('skip backward') ||
+    lower.includes('skip forward') ||
+    lower.includes('unmute') ||
+    lower.includes('vjs-') ||
+    lower.includes('watch again') ||
+    lower.includes('audio track') ||
+    lower.includes('fullscreen') ||
+    lower.includes('replay') && lower.includes('skip')
+  )
+}
+
 /**
  * Extracts author, post text, media status, and post ID from a LinkedIn post element
  */
@@ -66,44 +111,70 @@ export function extractLinkedInPostData(rawContainer: HTMLElement): LinkedInPost
   // 1. Author extraction
   let author = ''
 
-  const authorEl =
-    container.querySelector('.update-components-actor__title span[aria-hidden="true"]') ||
-    container.querySelector('.update-components-actor__name span[aria-hidden="true"]') ||
-    container.querySelector('.feed-shared-actor__title span[aria-hidden="true"]') ||
-    container.querySelector('.feed-shared-actor__name span[aria-hidden="true"]') ||
-    container.querySelector('.update-components-actor__title') ||
-    container.querySelector('.update-components-actor__name') ||
-    container.querySelector('.feed-shared-actor__title') ||
-    container.querySelector('.feed-shared-actor__name')
+  const authorSelectors = [
+    '.update-components-actor__title span[aria-hidden="true"]',
+    '.update-components-actor__name span[aria-hidden="true"]',
+    '.feed-shared-actor__title span[aria-hidden="true"]',
+    '.feed-shared-actor__name span[aria-hidden="true"]',
+    '.update-components-actor__title',
+    '.update-components-actor__name',
+    '.feed-shared-actor__title',
+    '.feed-shared-actor__name',
+    '[class*="actor__name"]',
+    '[class*="actor__title"]'
+  ]
 
-  if (authorEl) {
-    const raw = (authorEl as HTMLElement).innerText || ''
-    // Split on newline or bullet (which separates name from connection degree, e.g. "Nikhil Maurya • 2nd")
-    author = raw.split(/\n|•/)[0].trim()
-  }
-
-  // Fallback A: Avatar image alt attribute (almost always contains the author's exact name)
-  if (!author || author.toLowerCase() === 'linkedin member') {
-    const avatarImg = container.querySelector<HTMLImageElement>(
-      'img.update-components-actor__avatar-image, img.feed-shared-actor__avatar-image, .update-components-actor img[alt], .feed-shared-actor img[alt]'
-    )
-    if (avatarImg && avatarImg.alt) {
-      author = avatarImg.alt.replace(/^photo of\s*/i, '').trim()
+  for (const selector of authorSelectors) {
+    const el = container.querySelector<HTMLElement>(selector)
+    if (el) {
+      const raw = (el.innerText || '').split(/\n|•/)[0].trim()
+      if (raw && !raw.toLowerCase().includes('view profile') && raw.length >= 2 && raw.length <= 60) {
+        author = raw
+        break
+      }
     }
   }
 
-  // Fallback B: Actor profile link aria-label or text
+  // Fallback A: Iterate through ALL profile links in the post
   if (!author || author.toLowerCase() === 'linkedin member') {
-    const profileLink = container.querySelector<HTMLAnchorElement>(
-      '.update-components-actor a[href*="/in/"], .feed-shared-actor a[href*="/in/"], a[href*="/in/"]'
+    const profileLinks = Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href*="/in/"]'))
+    for (const link of profileLinks) {
+      // Check aria-label (e.g. "View profile for Bernard K. Mtonga")
+      const aria = (link.getAttribute('aria-label') || '').trim()
+      const cleanedAria = aria.replace(/^view profile for\s*/i, '').split(/\n|•/)[0].trim()
+      if (cleanedAria && cleanedAria.length >= 2 && cleanedAria.length <= 60) {
+        author = cleanedAria
+        break
+      }
+
+      // Check text inside the link (e.g. "Bernard K. Mtonga\nFull Stack Developer...")
+      const linkText = (link.innerText || '').split(/\n|•/)[0].trim()
+      if (linkText && linkText.length >= 2 && linkText.length <= 60 && !linkText.toLowerCase().includes('view profile')) {
+        author = linkText
+        break
+      }
+
+      // Check child avatar image inside link
+      const childImg = link.querySelector('img[alt]') as HTMLImageElement | null
+      if (childImg && childImg.alt) {
+        const altText = childImg.alt.replace(/^photo of\s*/i, '').replace(/^view\s*/i, '').split(/\n|•/)[0].trim()
+        if (altText && altText.length >= 2 && altText.length <= 60) {
+          author = altText
+          break
+        }
+      }
+    }
+  }
+
+  // Fallback B: Any avatar image in the post
+  if (!author || author.toLowerCase() === 'linkedin member') {
+    const avatarImg = container.querySelector<HTMLImageElement>(
+      '.update-components-actor img[alt], .feed-shared-actor img[alt], img.ivm-view-attr__img--centered[alt], img[class*="avatar"][alt]'
     )
-    if (profileLink) {
-      const aria = (profileLink.getAttribute('aria-label') || '').trim()
-      const cleaned = aria.replace(/^view profile for\s*/i, '').trim()
-      if (cleaned) {
-        author = cleaned
-      } else {
-        author = profileLink.innerText.split(/\n|•/)[0].trim()
+    if (avatarImg && avatarImg.alt) {
+      const alt = avatarImg.alt.replace(/^photo of\s*/i, '').replace(/^view profile for\s*/i, '').split(/\n|•/)[0].trim()
+      if (alt && alt.length >= 2 && alt.length <= 60 && !alt.toLowerCase().includes('reaction')) {
+        author = alt
       }
     }
   }
@@ -112,40 +183,69 @@ export function extractLinkedInPostData(rawContainer: HTMLElement): LinkedInPost
     author = 'LinkedIn Member'
   }
 
-  // 2. Text extraction
+  // 2. Text extraction (Strictly excluding video player elements and video controls)
   let text = ''
 
-  const textEl =
-    container.querySelector('.feed-shared-update-v2__description-wrapper') ||
-    container.querySelector('.feed-shared-update-v2__description') ||
-    container.querySelector('.update-components-text') ||
-    container.querySelector('.feed-shared-inline-show-more-text') ||
-    container.querySelector('div[data-ad-preview="message"]') ||
-    container.querySelector('.feed-shared-text') ||
-    container.querySelector('.feed-shared-text-view')
+  const textSelectors = [
+    '.feed-shared-update-v2__description-wrapper',
+    '.feed-shared-update-v2__description',
+    '.update-components-text',
+    '.feed-shared-inline-show-more-text',
+    '[data-view-name="feed-full-update"] .update-components-text',
+    'div[data-ad-preview="message"]',
+    '.feed-shared-text',
+    '.feed-shared-text-view',
+    '[class*="update-v2__commentary"]',
+    '[class*="update-components-commentary"]'
+  ]
 
-  if (textEl) {
-    // Check if there is an inner span dir="ltr" which holds the post text without the "...more" button
-    const ltrSpan = textEl.querySelector('span[dir="ltr"]') as HTMLElement | null
-    if (ltrSpan) {
-      text = ltrSpan.innerText.trim()
-    } else {
-      text = (textEl as HTMLElement).innerText.trim()
+  for (const sel of textSelectors) {
+    const textEl = container.querySelector<HTMLElement>(sel)
+    if (textEl) {
+      // Must NOT be inside a video player or video controls
+      if (
+        textEl.closest(
+          '.feed-shared-linkedin-video, .update-components-video, [class*="video"], [class*="vjs-"], .vjs-control-bar, video'
+        )
+      ) {
+        continue
+      }
+
+      // Clone element so we can remove "...more" buttons and any nested controls cleanly
+      const clone = textEl.cloneNode(true) as HTMLElement
+      const buttons = clone.querySelectorAll('button, .feed-shared-inline-show-more-text__see-more-less-toggle')
+      buttons.forEach((btn) => btn.remove())
+
+      const mediaControls = clone.querySelectorAll('.vjs-control-bar, [class*="vjs-"], [class*="video"], video')
+      mediaControls.forEach((m) => m.remove())
+
+      const ltrSpan = clone.querySelector('span[dir="ltr"]') as HTMLElement | null
+      const candidate = (ltrSpan ? ltrSpan.innerText : clone.innerText).trim()
+
+      if (candidate.length > 0 && !isMediaOrControlsText(candidate)) {
+        text = candidate
+        break
+      }
     }
   }
 
-  // Fallback: search for any break-words container that isn't the actor or action bar
+  // Fallback: search for any break-words container that isn't actor, video, or social bar
   if (!text) {
-    const candidates = container.querySelectorAll<HTMLElement>('.break-words, span[dir="ltr"], div[dir="ltr"]')
+    const candidates = container.querySelectorAll<HTMLElement>('.break-words')
     for (const el of Array.from(candidates)) {
       if (
         !el.closest(
-          '.update-components-actor, .feed-shared-actor, .feed-shared-social-actions, .feed-shared-social-action-bar, .feed-shared-control-menu, .feed-shared-social-counts'
+          '.update-components-actor, .feed-shared-actor, [class*="actor"], .feed-shared-linkedin-video, .update-components-video, [class*="video"], [class*="vjs-"], video, .feed-shared-social-actions, .feed-shared-social-action-bar, .feed-shared-control-menu, .feed-shared-social-counts'
         )
       ) {
-        const candidateText = el.innerText.trim()
-        if (candidateText.length > text.length) {
+        const clone = el.cloneNode(true) as HTMLElement
+        const buttons = clone.querySelectorAll('button')
+        buttons.forEach((btn) => btn.remove())
+
+        const candidateText = clone.innerText.trim()
+        if (candidateText.length > 0 && !isMediaOrControlsText(candidateText)) {
           text = candidateText
+          break
         }
       }
     }
@@ -164,6 +264,8 @@ export function extractLinkedInPostData(rawContainer: HTMLElement): LinkedInPost
     author,
     text,
     hasMedia: mediaInfo.hasMedia,
+    mediaType: mediaInfo.mediaType,
+    mediaDescription: mediaInfo.mediaDescription,
     postId
   }
 }

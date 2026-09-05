@@ -207,6 +207,7 @@ function injectReplyButton(rawBar: HTMLElement, postElement: HTMLElement): void 
       author={postData.author}
       article={postElement}
       hasMedia={postData.hasMedia}
+      mediaType={postData.mediaType}
     />
   )
 
