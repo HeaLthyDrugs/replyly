@@ -189,7 +189,8 @@ export const AIManager = {
     tone: string, 
     customInstruction: string = "", 
     numReplies: number = 3,
-    grokContext: string = ""
+    grokContext: string = "",
+    platform: "x" | "linkedin" = "x"
   ): Promise<GenerationResult> {
     const config = await this.getConfig()
     
@@ -219,7 +220,8 @@ export const AIManager = {
             numReplies,
             model: account.model || "default",
             apiKey: account.apiKey,
-            grokContext
+            grokContext,
+            platform
           })
 
           const latencyMs = Date.now() - startTime

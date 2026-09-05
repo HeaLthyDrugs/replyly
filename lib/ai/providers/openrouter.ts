@@ -7,7 +7,7 @@ export const openrouterProvider: AIProvider = {
   name: 'OpenRouter',
 
   async generateReplies(req: GenerateRequest): Promise<string[]> {
-    const prompt = generateReplyPrompt(req.postText, req.tone, req.customInstruction, req.numReplies, req.grokContext)
+    const prompt = generateReplyPrompt(req.postText, req.tone, req.customInstruction, req.numReplies, req.grokContext, req.platform)
 
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {

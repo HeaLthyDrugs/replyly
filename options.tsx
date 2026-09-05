@@ -1304,7 +1304,7 @@ export function Options() {
                       </h2>
                     </div>
                     <p style={{ margin: "3px 0 0", fontSize: "13px", color: "#6b7280" }}>
-                      Toggle injection and reply buttons on supported social feeds (X.com active, LinkedIn coming soon).
+                      Toggle injection and reply buttons on supported social feeds (Active on X.com and LinkedIn).
                     </p>
                   </div>
 

@@ -50,7 +50,7 @@ function IndexPopup() {
             })
           } else if (hostname.includes("linkedin.com")) {
             setCurrentSite({
-              name: "LinkedIn (Coming Soon)",
+              name: "LinkedIn",
               key: "linkedin"
             })
           } else {
@@ -91,8 +91,8 @@ function IndexPopup() {
   const getSiteStatusText = () => {
     if (!isEnabled) return "Tap to turn ON"
     if (currentSite.key === "x") return "Active on X (Twitter)"
-    if (currentSite.key === "linkedin") return "LinkedIn (Coming Soon 🚀)"
-    return "Active on X (Twitter)"
+    if (currentSite.key === "linkedin") return "Active on LinkedIn"
+    return "Ready on X & LinkedIn"
   }
 
   return (
@@ -358,14 +358,14 @@ function IndexPopup() {
 
         <button
           onClick={openLinkedIn}
-          title="LinkedIn integration is coming soon!"
+          title="Open LinkedIn in a new tab"
           style={{
             flex: 1,
             padding: "8px 10px",
             borderRadius: "8px",
             border: "1px solid #e2e8f0",
-            backgroundColor: "#f8fafc",
-            color: "#475569",
+            backgroundColor: "#ffffff",
+            color: "#0f1419",
             fontWeight: 700,
             fontSize: "12px",
             cursor: "pointer",
@@ -376,31 +376,18 @@ function IndexPopup() {
             transition: "all 0.15s ease"
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#f1f5f9"
+            e.currentTarget.style.backgroundColor = "#f8fafc"
             e.currentTarget.style.borderColor = "#cbd5e1"
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#f8fafc"
+            e.currentTarget.style.backgroundColor = "#ffffff"
             e.currentTarget.style.borderColor = "#e2e8f0"
           }}
         >
           <svg viewBox="0 0 24 24" width="14" height="14" fill="#0a66c2">
             <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
           </svg>
-          <span>LinkedIn</span>
-          <span
-            style={{
-              fontSize: "9.5px",
-              fontWeight: 700,
-              padding: "1px 5px",
-              borderRadius: "9999px",
-              backgroundColor: "#e0e7ff",
-              color: "#4338ca",
-              letterSpacing: "0.2px"
-            }}
-          >
-            Soon
-          </span>
+          Open LinkedIn
         </button>
       </div>
     </div>

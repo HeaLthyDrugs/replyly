@@ -48,6 +48,65 @@ export const ReplylyIcon: React.FC<LogoProps> = ({
 export const RlyLogoIcon = ReplylyIcon
 
 /**
+ * Self-contained SVG icon of Replyly logo for crisp, instant rendering
+ */
+export const RlySvgIcon: React.FC<{ size?: number; style?: React.CSSProperties; className?: string }> = ({
+  size = 20,
+  style,
+  className
+}) => (
+  <svg
+    viewBox="0 0 512 512"
+    width={size}
+    height={size}
+    className={className}
+    style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0, ...style }}
+  >
+    <defs>
+      <linearGradient id="rlySvgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#F4A261" />
+        <stop offset="100%" stopColor="#D65A3C" />
+      </linearGradient>
+    </defs>
+    <g transform="translate(256, 256)">
+      <rect
+        x="-170"
+        y="-170"
+        width="340"
+        height="340"
+        rx="85"
+        transform="rotate(45)"
+        fill="url(#rlySvgGrad)"
+      />
+      <rect
+        x="-162"
+        y="-162"
+        width="324"
+        height="324"
+        rx="80"
+        transform="rotate(45)"
+        fill="none"
+        stroke="#ffffff"
+        strokeOpacity="0.25"
+        strokeWidth="6"
+      />
+      <text
+        x="0"
+        y="42"
+        textAnchor="middle"
+        fill="#FFFFFF"
+        fontFamily="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        fontSize="128"
+        fontWeight="900"
+        letterSpacing="-2px"
+      >
+        Rly
+      </text>
+    </g>
+  </svg>
+)
+
+/**
  * Full Replyly Brand mark (Logo + Wordmark)
  */
 export const ReplylyBrand: React.FC<{

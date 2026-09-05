@@ -7,7 +7,7 @@ Intelligent, contextual AI-powered replies for social media feeds.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Chrome%20MV3-orange.svg)](https://developer.chrome.com/docs/extensions/mv3/)
 
-Replyly is a lightweight browser extension that generates natural, contextual replies on X (Twitter) using your preferred AI model (Google Gemini, Groq, or OpenRouter).
+Replyly is a lightweight browser extension that generates natural, contextual replies on X (Twitter) and LinkedIn using your preferred AI model (Google Gemini, Groq, or OpenRouter).
 
 ---
 
@@ -42,7 +42,7 @@ No coding or build tools required.
    - **Google Gemini**: [Google AI Studio](https://aistudio.google.com/)
    - **Groq**: [Groq Console](https://console.groq.com/)
    - **OpenRouter**: [OpenRouter Portal](https://openrouter.ai/)
-3. Go to [x.com](https://x.com), click the Replyly button on any post, pick a tone, and get instant replies.
+3. Go to [x.com](https://x.com) or [linkedin.com](https://linkedin.com), click the Replyly button on any post, pick a tone, and get instant replies.
 
 ---
 

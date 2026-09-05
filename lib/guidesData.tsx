@@ -472,7 +472,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {[
             { platform: "X (Twitter)", status: "Live & Active 🟢", desc: "Full feed, thread, and Grok context support." },
-            { platform: "LinkedIn", status: "Coming Soon 🚀 (Next Release)", desc: "Professional feed posts, articles, and comment bars." },
+            { platform: "LinkedIn", status: "Live & Active 🟢", desc: "Professional feed posts, articles, and comment bars." },
             { platform: "Bluesky", status: "In Planning 🟡", desc: "AT Protocol feed injection and reply generation." },
             { platform: "Meta Threads", status: "In Planning 🟡", desc: "Threads web feed support." },
             { platform: "Reddit", status: "Under Consideration ⚪", desc: "Subreddit thread discussions and AMAs." }

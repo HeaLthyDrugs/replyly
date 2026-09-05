@@ -48,6 +48,7 @@ export interface GenerateRequest {
   model: string
   apiKey: string
   grokContext?: string
+  platform?: "x" | "linkedin"
 }
 
 export interface GenerationResult {

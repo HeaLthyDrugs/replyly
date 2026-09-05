@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react"
 import { AIManager } from "../lib/ai/manager"
 import { MissingApiKeyError } from "../lib/ai/types"
 import { openReplyComposer } from "../lib/x-dom"
+import { openLinkedInCommentComposer, detectLinkedInPostMedia, extractLinkedInPostData } from "../lib/linkedin-dom"
 import { detectPostMedia, findGrokSidebarPanel, getGrokContext, isGrokThinkingOrStreaming, scrapeGrokContext } from "../lib/grok-dom"
 import { RlyLogoIcon } from "./Logo"
 
@@ -10,6 +11,7 @@ export interface ModalData {
   postText: string
   article: HTMLElement
   hasMedia: boolean
+  platform?: "x" | "linkedin"
 }
 
 interface ReplyState {
@@ -70,18 +72,31 @@ const GENERATION_STEPS = [
 // Module-level cache to persist generated replies for specific posts across modal opens
 const postCache = new Map<string, CachedPostData>()
 
-function getCacheKey(author: string, postText: string, article?: HTMLElement | null): string {
+function getCacheKey(author: string, postText: string, article?: HTMLElement | null, platform?: string): string {
   if (article) {
-    const statusLink = article.querySelector('a[href*="/status/"]') as HTMLAnchorElement | null
-    if (statusLink) {
-      const href = statusLink.getAttribute('href') || statusLink.href || ''
-      const statusMatch = href.match(/\/status\/(\d+)/)
-      if (statusMatch && statusMatch[1]) {
-        return `status:${statusMatch[1]}`
+    if (platform === "linkedin") {
+      const urn = article.getAttribute('data-urn') || article.getAttribute('data-id')
+      if (urn) return `li:${urn}`
+      const statusLink = article.querySelector('a[href*="/feed/update/urn:li:activity:"]') as HTMLAnchorElement | null
+      if (statusLink) {
+        const href = statusLink.getAttribute('href') || statusLink.href || ''
+        const match = href.match(/urn:li:activity:(\d+)/)
+        if (match && match[1]) {
+          return `li:activity:${match[1]}`
+        }
+      }
+    } else {
+      const statusLink = article.querySelector('a[href*="/status/"]') as HTMLAnchorElement | null
+      if (statusLink) {
+        const href = statusLink.getAttribute('href') || statusLink.href || ''
+        const statusMatch = href.match(/\/status\/(\d+)/)
+        if (statusMatch && statusMatch[1]) {
+          return `status:${statusMatch[1]}`
+        }
       }
     }
   }
-  return `${author}::${postText}`
+  return `${platform || 'x'}::${author}::${postText}`
 }
 
 export const ReplyModal: React.FC = () => {
@@ -129,13 +144,30 @@ export const ReplyModal: React.FC = () => {
   useEffect(() => {
     const handleOpenModal = (e: Event) => {
       const customEvent = e as CustomEvent<ModalData>
-      const newPostData = customEvent.detail
+      const newPostData = { ...customEvent.detail }
+
+      // Re-extract if on LinkedIn and data is missing or default
+      if (
+        newPostData.platform === "linkedin" &&
+        (!newPostData.postText || newPostData.author === "LinkedIn Member") &&
+        newPostData.article
+      ) {
+        const postCard =
+          newPostData.article.closest<HTMLElement>(
+            'div[data-view-name="feed-full-update"], div.feed-shared-update-v2, div.occludable-update, article'
+          ) || newPostData.article
+        const freshData = extractLinkedInPostData(postCard)
+        if (freshData.text) newPostData.postText = freshData.text
+        if (freshData.author && freshData.author !== "LinkedIn Member") newPostData.author = freshData.author
+        if (freshData.hasMedia) newPostData.hasMedia = true
+      }
+
       setData(newPostData)
       setIsOpen(true)
       setIsToneModalOpen(false)
       setIsGrokDismissed(false)
       
-      const key = getCacheKey(newPostData.author, newPostData.postText, newPostData.article)
+      const key = getCacheKey(newPostData.author, newPostData.postText, newPostData.article, newPostData.platform)
       const cached = postCache.get(key)
       if (cached) {
         setReplies(cached.replies)
@@ -172,9 +204,9 @@ export const ReplyModal: React.FC = () => {
     return () => document.removeEventListener("replyly-open-modal", handleOpenModal)
   }, [])
 
-  // Auto-refresh and synchronize real-time Grok context automatically while active
+  // Auto-refresh and synchronize real-time Grok context automatically while active (X.com only)
   useEffect(() => {
-    if (!isOpen || !data?.article || isGrokDismissed) return
+    if (!isOpen || !data?.article || isGrokDismissed || data.platform === "linkedin") return
     // Only auto-sync if Grok analysis is actively loading/streaming or already present for this post
     if (!isGrokLoading && !isGrokStreaming && !grokContext) return
 
@@ -225,7 +257,7 @@ export const ReplyModal: React.FC = () => {
   // Auto-save to cache whenever replies, tone, customInstruction, or grokContext change
   useEffect(() => {
     if (data && (replies || grokContext)) {
-      const key = getCacheKey(data.author, data.postText, data.article)
+      const key = getCacheKey(data.author, data.postText, data.article, data.platform)
       postCache.set(key, {
         replies,
         selectedTone,
@@ -244,7 +276,11 @@ export const ReplyModal: React.FC = () => {
   }
 
   const handleGenerate = async () => {
-    if (!data.postText && !grokContext) return
+    const effectiveText =
+      data.postText ||
+      (data.platform === "linkedin" && data.hasMedia ? `[Media post by ${data.author}]` : "")
+
+    if (!effectiveText && !grokContext) return
     
     setIsGenerating(true)
     setGenerationStep(0)
@@ -258,11 +294,12 @@ export const ReplyModal: React.FC = () => {
       const numRepliesToGen = storageRes.replyly_numReplies || 3
 
       const result = await AIManager.generateReplies(
-        data.postText,
+        effectiveText,
         selectedTone,
         customInstruction,
         numRepliesToGen,
-        grokContext || ""
+        data.platform === "linkedin" ? "" : (grokContext || ""),
+        data.platform || "x"
       )
       
       const newReplies: ReplyState[] = result.replies.map((text, i) => ({
@@ -309,7 +346,8 @@ export const ReplyModal: React.FC = () => {
         selectedTone,
         customInstruction,
         1,
-        grokContext || ""
+        data.platform === "linkedin" ? "" : (grokContext || ""),
+        data.platform || "x"
       )
       const newText = regeneratedReplies.replies[0]
       
@@ -340,11 +378,15 @@ export const ReplyModal: React.FC = () => {
       }
       
       setIsOpen(false)
-      await openReplyComposer(data.article, text)
+      if (data.platform === "linkedin") {
+        await openLinkedInCommentComposer(data.article, text)
+      } else {
+        await openReplyComposer(data.article, text)
+      }
       
     } catch (err: any) {
       setIsOpen(true)
-      setError(err.message || "Failed to open X's reply composer. Please use Copy instead.")
+      setError(err.message || `Failed to open ${data.platform === "linkedin" ? "LinkedIn's" : "X's"} comment composer. Please use Copy instead.`)
     } finally {
       setPostingId(null)
     }
@@ -363,7 +405,8 @@ export const ReplyModal: React.FC = () => {
   }
 
   const handleDraftChange = (id: string, newText: string) => {
-    if (newText.length > 280) return
+    const maxChars = data?.platform === "linkedin" ? 3000 : 280
+    if (newText.length > maxChars) return
     setReplies(prev => prev!.map(r => 
       r.id === id ? { ...r, draftText: newText } : r
     ))
@@ -542,7 +585,7 @@ export const ReplyModal: React.FC = () => {
           {/* Post Reference */}
           <div>
             <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Post you're replying to
+              {data.platform === "linkedin" ? "Post you're commenting on" : "Post you're replying to"}
             </div>
             <div className="replyly-scroll" style={{ 
               fontSize: "13.5px", lineHeight: "1.5", maxHeight: "90px", overflowY: "auto", overflowX: "hidden",
@@ -554,8 +597,21 @@ export const ReplyModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Grok Context Section */}
-          {data.article && (
+          {/* Media detected indicator for LinkedIn */}
+          {data.article && data.platform === "linkedin" && (data.hasMedia || detectLinkedInPostMedia(data.article).hasMedia) && (
+            <div style={{ 
+              display: "flex", alignItems: "center", gap: "6px", 
+              fontSize: "12px", color: "#64748b", fontWeight: 600
+            }}>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"></path>
+              </svg>
+              This post contains media
+            </div>
+          )}
+
+          {/* Grok Context Section - Only on X (Twitter) */}
+          {data.article && data.platform !== "linkedin" && (
             <div>
               {/* Media detected indicator */}
               {(data.hasMedia || detectPostMedia(data.article).hasMedia) && (
@@ -996,8 +1052,8 @@ export const ReplyModal: React.FC = () => {
                             }}
                           />
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", color: reply.draftText.length === 280 ? "#dc2626" : "#64748b", fontWeight: 600 }}>
-                              {reply.draftText.length} / 280
+                            <span style={{ fontSize: "12px", color: reply.draftText.length >= (data.platform === "linkedin" ? 3000 : 280) ? "#dc2626" : "#64748b", fontWeight: 600 }}>
+                              {reply.draftText.length} / {data.platform === "linkedin" ? 3000 : 280}
                             </span>
                             <div style={{ display: "flex", gap: "8px" }}>
                               <button
@@ -1118,7 +1174,7 @@ export const ReplyModal: React.FC = () => {
                                   }
                                 }}
                               >
-                                {postingId === reply.id ? "Opening..." : "Post this →"}
+                                {postingId === reply.id ? "Opening..." : (data.platform === "linkedin" ? "Insert Comment →" : "Post this →")}
                               </button>
                             </div>
                           </div>

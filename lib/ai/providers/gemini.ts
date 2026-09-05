@@ -9,7 +9,7 @@ export const geminiProvider: AIProvider = {
 
   async generateReplies(req: GenerateRequest): Promise<string[]> {
     const ai = new GoogleGenAI({ apiKey: req.apiKey })
-    const prompt = generateReplyPrompt(req.postText, req.tone, req.customInstruction, req.numReplies, req.grokContext)
+    const prompt = generateReplyPrompt(req.postText, req.tone, req.customInstruction, req.numReplies, req.grokContext, req.platform)
 
     try {
       const response = await ai.models.generateContent({
